@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# T-Rex Edu
 
-## Getting Started
+Giao diện học tiếng Anh bằng Next.js 16, React 19 và TypeScript. Thiết kế responsive với tiếng Việt, tông teal và bộ nhận diện T-Rex có sẵn.
 
-First, run the development server:
+## Chạy dự án
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Mở http://localhost:3000. Kiểm tra bằng `npm run lint` và `npm run build`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Các màn hình
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/`: trang chủ, thẻ từ tương tác, gợi ý học tiếp và mục tiêu hôm nay.
+- `/decks`: tìm kiếm, lọc chủ đề/trình độ, lưu bộ từ và tạo bộ từ cá nhân.
+- `/decks/[id]`: danh sách từ, phiên âm, nghĩa, ví dụ và thêm từ vào bộ cá nhân.
+- `/decks/[id]/study`: lật flashcard, nghe phát âm nếu trình duyệt hỗ trợ, tự đánh giá ghi nhớ và hoàn thành phiên học.
+- `/quiz`, `/quiz/[id]`: quiz tự tạo từ nội dung bộ từ, gồm cả bộ cá nhân.
+- `/tests`, `/tests/[id]`: ba bài luyện tập A1–A2, chọn đáp án và xem giải thích.
+- `/attempts/[id]`: điểm số, xem lại đáp án, lọc câu chưa đúng.
+- `/dashboard`: thống kê thật từ hoạt động, biểu đồ bảy ngày, mục tiêu tùy chỉnh và lịch sử kết quả.
+- `/login`, `/register`: giao diện tài khoản và luồng học thử bằng tên hiển thị.
+- `/admin`: bản xem trước quản lý bộ từ cục bộ.
 
-## Learn More
+## Dữ liệu và giới hạn hiện tại
 
-To learn more about Next.js, take a look at the following resources:
+Bốn bộ từ có sẵn chứa 32 từ. Nội dung nằm trong `src/lib/learning-data.ts`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Bộ từ cá nhân, từ đã nhớ, mục tiêu, tên học thử và kết quả được lưu bằng localStorage (`trex-learning-v1`), có kiểm tra cấu trúc bằng Zod. Dữ liệu chỉ có trên trình duyệt đã sử dụng, chưa đồng bộ thiết bị; xóa dữ liệu trình duyệt sẽ mất tiến độ. Biểu đồ đếm số từ khác nhau đã ôn mỗi ngày theo múi giờ thiết bị.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Xác thực, email khôi phục và quản trị máy chủ chưa được kết nối. Form tài khoản thông báo rõ trạng thái này, không gửi hay lưu mật khẩu. `/admin` là giao diện quản lý cục bộ, không phải khu vực đã được bảo vệ bằng quyền máy chủ. Schema Prisma và migration ban đầu đã có; phần Supabase Auth, truy vấn runtime và server actions vẫn cần tích hợp.
 
-## Deploy on Vercel
+## Database Supabase / Prisma
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Điền `DIRECT_URL` trong `.env` bằng Direct connection hoặc Session pooler cổng 5432, sau đó chạy:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run db:validate
+npm run db:migrate
+npm run db:generate
+npm run db:status
+```
+
+Migration tạo 9 bảng ứng dụng và bật RLS; chưa seed dữ liệu hay kết nối giao diện. Chi tiết cấu trúc, quyền truy cập và cách xử lý lỗi nằm trong [prisma/README.md](prisma/README.md).
+
+## Kiểm tra giao diện
+
+Đã kiểm tra trên trình duyệt: trang chủ desktop; bố cục 390px và 320px; lật thẻ và lưu tiến độ; tạo bộ từ, thêm từ; tìm kiếm; làm bài test 4/5 câu; quiz từ bộ cá nhân; lọc đáp án sai; tải lại kết quả; và luồng học thử.

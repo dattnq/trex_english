@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  LEARNER
+  ADMIN
+}
+
+enum DeckVisibility {
+  PRIVATE
+  PUBLIC
+}
+
+enum AttemptKind {
+  QUIZ
+  TEST
+}
+
+/// id must be the verified Supabase Auth user UUID; passwords stay in Supabase.
+/// The auth schema is deliberately not managed by Prisma migrations.
+model Profile {
+  id          String   @id @db.Uuid
+  displayName String   @map("display_name") @db.VarChar(80)
+  role        Role     @default(LEARNER)
+  dailyGoal   Int      @default(10) @map("daily_goal")
+  timeZone    String   @default("Asia/Ho_Chi_Minh") @map("time_zone") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  decks        Deck[]
+  savedDecks   SavedDeck[]
+  wordProgress WordProgress[]
+  activity     DailyWordActivity[]
+  attempts     Attempt[]
+
+  @@map("profiles")
+}
+
+model Deck {
+  // Text IDs preserve existing slugs such as "everyday" and custom UUIDs.
+  id          String         @id @default(uuid())
+  ownerId     String?        @map("owner_id") @db.Uuid
+  title       String         @db.VarChar(160)
+  description String         @default("")
+  category    String         @db.VarChar(80)
+  level       String         @default("A1") @db.VarChar(8)
+  color       String         @default("blue") @db.VarChar(24)
+  symbol      String         @default("Aa") @db.VarChar(16)
+  visibility  DeckVisibility @default(PRIVATE)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  // A null owner identifies system content. Private decks require an owner.
+  owner    Profile?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  words    Word[]
+  savedBy  SavedDeck[]
+  attempts Attempt[]
+
+  @@index([ownerId])
+  @@index([visibility, level, category])
+  @@map("decks")
+}
+
+model Word {
+  deckId    String   @map("deck_id")
+  id        String   @default(uuid())
+  term      String   @db.VarChar(200)
+  phonetic  String   @default("") @db.VarChar(200)
+  meaning   String
+  example   String   @default("")
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  deck     Deck                @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  progress WordProgress[]
+  activity DailyWordActivity[]
+
+  // Starter word IDs repeat between decks; identity includes the deck ID.
+  @@id([deckId, id])
+  @@index([deckId, position])
+  @@map("words")
+}
+
+model SavedDeck {
+  userId    String   @map("user_id") @db.Uuid
+  deckId    String   @map("deck_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deck Deck    @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@id([userId, deckId])
+  @@index([deckId])
+  @@map("saved_decks")
+}
+
+model WordProgress {
+  userId       String   @map("user_id") @db.Uuid
+  deckId       String   @map("deck_id")
+  wordId       String   @map("word_id")
+  known        Boolean  @default(false)
+  lastReviewed DateTime @default(now()) @map("last_reviewed") @db.Timestamptz(3)
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word Word    @relation(fields: [deckId, wordId], references: [deckId, id], onDelete: Cascade)
+
+  @@id([userId, deckId, wordId])
+  @@index([deckId, wordId])
+  @@index([userId, known])
+  @@map("word_progress")
+}
+
+/// One row per distinct reviewed word per learner's local calendar day.
+model DailyWordActivity {
+  userId     String   @map("user_id") @db.Uuid
+  day        DateTime @db.Date
+  deckId     String   @map("deck_id")
+  wordId     String   @map("word_id")
+  reviewedAt DateTime @default(now()) @map("reviewed_at") @db.Timestamptz(3)
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word Word    @relation(fields: [deckId, wordId], references: [deckId, id], onDelete: Cascade)
+
+  @@id([userId, day, deckId, wordId])
+  @@index([deckId, wordId])
+  @@map("daily_word_activity")
+}
+
+model Test {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(160)
+  description String   @default("")
+  level       String   @default("A1") @db.VarChar(8)
+  category    String   @db.VarChar(80)
+  minutes     Int      @default(5)
+  color       String   @default("blue") @db.VarChar(24)
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  questions TestQuestion[]
+  attempts  Attempt[]
+
+  @@index([published, level])
+  @@map("tests")
+}
+
+model TestQuestion {
+  id          String   @id @default(uuid())
+  testId      String   @map("test_id")
+  position    Int
+  prompt      String
+  options     String[]
+  // Zero-based index into options, matching the current frontend.
+  answer      Int
+  explanation String   @default("")
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, position])
+  @@map("test_questions")
+}
+
+model Attempt {
+  id          String      @id @default(uuid())
+  userId      String      @map("user_id") @db.Uuid
+  kind        AttemptKind
+  deckId      String?     @map("deck_id")
+  testId      String?     @map("test_id")
+  title       String      @db.VarChar(160)
+  // Immutable question snapshots preserve results when source content changes.
+  // Each entry: { prompt, options, answer, explanation }.
+  questions   Json        @db.JsonB
+  answers     Int[]
+  // Number of correct answers, not a percentage.
+  score       Int
+  completedAt DateTime    @default(now()) @map("completed_at") @db.Timestamptz(3)
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deck Deck?   @relation(fields: [deckId], references: [id], onDelete: SetNull)
+  test Test?   @relation(fields: [testId], references: [id], onDelete: SetNull)
+
+  @@index([userId, completedAt])
+  @@index([deckId])
+  @@index([testId])
+  @@map("attempts")
+}

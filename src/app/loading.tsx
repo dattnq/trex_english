@@ -1,0 +1,1 @@
+export default function Loading() { return <main id="main" className="container page-main loading-state" role="status"><span className="loading-flower">✳</span><h2>Một chút thôi, T-Rex đang chuẩn bị...</h2><div className="skeleton" /><div className="skeleton short" /></main>; }
