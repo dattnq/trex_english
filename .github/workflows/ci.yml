@@ -1,0 +1,22 @@
+name: Verify
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/trex_ci
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/trex_ci
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run lint
+      - run: npm run test:auth && npm run test:admin && npm run test:pronunciation && npm run test:learning && npm run test:logic && npm run test:ops
+      - run: npm run build -- --webpack

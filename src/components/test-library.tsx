@@ -1,19 +1,19 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { tests } from "@/lib/learning-data";
-import { useLearning } from "./learning-provider";
+export type TestSummary={id:string;title:string;level:string;category:string;minutes:number;color:string;questionCount:number};
+
 import { Icon, PageHeading } from "./ui";
-export default function TestLibrary() {
+export default function TestLibrary({tests,completedIds=[]}: {tests:TestSummary[];completedIds?:string[]}) {
   const [level, setLevel] = useState("Tất cả");
-  const { state } = useLearning();
+
   return (
     <main id="main" className="container page-main">
-      <PageHeading title="Bài kiểm tra" />
+      <PageHeading title="Bài kiểm tra"><Link className="button secondary" href="/history">Bài làm của tôi</Link></PageHeading>
       <div className="section-heading">
         <h2>Chọn bài kiểm tra</h2>
         <div className="tabs">
-          {["Tất cả", "A1", "A2"].map((l) => (
+          {["Tất cả", "A1", "A2", "B1", "B2", "C1", "C2"].map((l) => (
             <button
               key={l}
               onClick={() => setLevel(l)}
@@ -42,13 +42,13 @@ export default function TestLibrary() {
               <div className="detail-meta">
                 <span>
                   <Icon name="test" size={16} />
-                  {test.questions.length} câu hỏi
+                  {test.questionCount} câu hỏi
                 </span>
                 <span>
                   <Icon name="clock" size={16} />~{test.minutes} phút
                 </span>
               </div>
-              {state.attempts.some((a) => a.title === test.title) && (
+              {completedIds.includes(test.id) && (
                 <p className="test-status">✓ Đã hoàn thành</p>
               )}
               <Link
@@ -61,9 +61,10 @@ export default function TestLibrary() {
             </article>
           ))}
       </div>
+      {!tests.filter(t=>level==="Tất cả"||t.level===level).length&&<p role="status">Chưa có đề công khai ở trình độ này.</p>}
       <p className="page-note">
         <Icon name="book" size={17} />
-        Bài luyện tập tham khảo A1–A2, giúp bạn tự ôn tập; không thay thế bài
+        Bài luyện tập tham khảo, giúp bạn tự ôn tập; không thay thế bài
         đánh giá trình độ chính thức.
       </p>
     </main>

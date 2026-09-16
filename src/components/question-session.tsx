@@ -1,19 +1,36 @@
 "use client";
-import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { makeQuiz, tests, type Question } from "@/lib/learning-data";
+import { useRef,useState } from "react";
+import { z } from "zod";
+import { makeQuiz } from "@/lib/learning-data";
+import { begin,step,stateSchema,publicState,score,type Command } from "@/lib/session-engine";
 import { useLearning } from "./learning-provider";
-import { EmptyState, Icon } from "./ui";
-export default function QuestionSession({ id, quiz = false }: { id: string; quiz?: boolean }) {
-  const { decks, ready } = useLearning(); const deck = decks.find(d => d.id === id); const test = tests.find(t => t.id === id);
-  if (!ready) return <main id="main" className="container page-main" role="status">Đang chuẩn bị câu hỏi...</main>;
-  if (quiz ? !deck?.words.length : !test) return <main id="main" className="container page-main"><EmptyState title="Chưa tìm thấy bài luyện tập" description="Chọn một bài khác để tiếp tục hành trình nhé." href={quiz ? "/quiz" : "/tests"} action="Chọn bài luyện tập" /></main>;
-  return <QuestionPlayer key={id} title={quiz ? `Quiz: ${deck!.title}` : test!.title} questions={quiz ? makeQuiz(deck!) : test!.questions} quiz={quiz} />;
-}
-function QuestionPlayer({ title, questions, quiz }: { title: string; questions: Question[]; quiz: boolean }) {
-  const { addAttempt } = useLearning(); const router = useRouter(); const [index, setIndex] = useState(0); const [answers, setAnswers] = useState<number[]>([]); const [checked, setChecked] = useState(false); const [submitting, setSubmitting] = useState(false);
-  const question = questions[index]; const selected = answers[index];
-  function next() { if (index < questions.length - 1) { setIndex(i => i + 1); setChecked(false); } else { if (submitting) return; setSubmitting(true); const id = crypto.randomUUID(); addAttempt({ id, title, date: new Date().toISOString(), questions, answers, score: answers.filter((a, i) => a === questions[i].answer).length }); router.push(`/attempts/${id}`); } }
-  return <main id="main" className="container page-main question-main"><div className="study-top"><Link className="back-link" href={quiz ? "/quiz" : "/tests"}><Icon name="back" size={18} />{quiz ? "Quiz từ vựng" : "Online Test"}</Link><span className="badge">{title}</span><span>Câu {index + 1} / {questions.length}</span></div><progress value={index + (checked ? 1 : 0)} max={questions.length} aria-label="Tiến độ làm bài" /><div className="question-layout"><section className="panel question-panel"><p className="eyebrow">{quiz ? "LET’S SEE WHAT YOU REMEMBER" : "TAKE A BREATH. YOU’VE GOT THIS."}</p><h1>{question.prompt}</h1><p className="muted">Chọn một đáp án đúng bên dưới.</p><div className="answer-options" role="group" aria-label="Các đáp án">{question.options.map((option, i) => <button key={i} disabled={checked} aria-pressed={selected === i} className={`answer-option ${selected === i ? "chosen" : ""} ${checked && i === question.answer ? "correct" : ""} ${checked && selected === i && i !== question.answer ? "incorrect" : ""}`} onClick={() => setAnswers(a => { const next = [...a]; next[index] = i; return next; })}><span>{String.fromCharCode(65 + i)}</span>{option}{checked && i === question.answer && <Icon name="check" size={19} />}</button>)}</div>{checked && <div className={`answer-explanation ${selected === question.answer ? "correct" : "incorrect"}`} role="status"><strong>{selected === question.answer ? "Chính xác! Thêm một bước tiến." : "Chưa đúng, nhưng bạn vừa học thêm rồi."}</strong><p>{question.explanation}</p></div>}<div className="question-bottom"><span className="muted">{index + 1} / {questions.length} câu hỏi</span>{checked ? <button className="button primary" disabled={submitting} onClick={next}>{index === questions.length - 1 ? "Xem kết quả" : "Câu tiếp theo"}<Icon name="arrow" size={17} /></button> : <button className="button primary" disabled={selected === undefined} onClick={() => setChecked(true)}>Kiểm tra đáp án<Icon name="check" size={17} /></button>}</div></section><aside className="question-aside"><span className="word-spark">✳</span><h3>Tiến bộ từ từng câu hỏi.</h3><p className="muted">Không sao nếu bạn chưa biết. Mỗi câu trả lời đều là một cơ hội để nhớ lâu hơn.</p><div className="question-dots">{questions.map((_, i) => <span className={i < index ? "done" : i === index ? "current" : ""} key={i}>{i < index ? <Icon name="check" size={15} /> : i + 1}</span>)}</div><small>Kết quả được lưu trên trình duyệt này.</small></aside></div></main>;
+import { EmptyState } from "./ui";
+import SessionPlayer from "./session-player";
+import StartButton from "./start-button";
+const savedQuiz=z.object({id:z.uuid(),title:z.string(),state:stateSchema});
+type SavedQuiz=z.infer<typeof savedQuiz>;
+export default function QuestionSession({id}:{id:string;quiz?:boolean}){
+ const {decks,ready,update,account}=useLearning(),deck=decks.find(d=>d.id===id);
+ const [active,setActive]=useState<SavedQuiz|null>(null),[error,setError]=useState("");const current=useRef<SavedQuiz|null>(null);
+ const key=`trex-quiz-session:${id}`;
+ function start(){
+  if(!deck)return;
+  let record:SavedQuiz|null=null;
+  try{const raw=localStorage.getItem(key);if(raw){const parsed=savedQuiz.safeParse(JSON.parse(raw));if(parsed.success&&parsed.data.state.phase!=="finished")record=parsed.data;}}catch{setError("Không đọc được phiên cũ. Bài mới sẽ bắt đầu.");}
+  if(!record)record={id:crypto.randomUUID(),title:`Quiz: ${deck.title}`,state:begin(makeQuiz(deck).slice(0,100),true,5000,Date.now())};
+  try{localStorage.setItem(key,JSON.stringify(record));}catch{setError("Trình duyệt không cho lưu phiên. Hãy cho phép lưu dữ liệu để có thể tiếp tục bài khi tải lại.");return;}
+  current.current=record;setActive(record);
+ }
+ async function execute(command:Command){
+  const record=current.current;if(!record)throw Error("Missing quiz");
+  // Re-read the shared revision so another tab cannot overwrite confirmed answers.
+  const raw=localStorage.getItem(key);if(raw){const parsed=savedQuiz.safeParse(JSON.parse(raw));if(parsed.success&&parsed.data.id===record.id)record.state=parsed.data.state;}
+  const next={...record,state:step(record.state,command,Date.now())};localStorage.setItem(key,JSON.stringify(next));current.current=next;
+  if(next.state.phase==="finished")update(s=>({...s,attempts:[{id:next.id,title:next.title,date:new Date(next.state.endedAt).toISOString(),questions:next.state.questions,answers:next.state.answers,score:score(next.state)},...s.attempts.filter(a=>a.id!==next.id)]}));
+  return publicState(next.state);
+ }
+ if(!ready)return <main id="main" className="container page-main">Đang tải bộ từ…</main>;
+ if(!deck?.words.length)return <main id="main" className="container page-main"><EmptyState title="Chưa có từ để làm quiz" description="Thêm từ vựng hoặc chọn bộ từ khác để bắt đầu." href="/quiz" action="Chọn bộ từ"/></main>;
+ if(account)return <main id="main" className="container page-main server-session"><section className="panel"><h1>{deck.title}</h1><p>5 giây mỗi câu. Kết quả lưu vào tài khoản sau khi hoàn thành.</p><StartButton kind="QUIZ" sourceId={id}/></section></main>;
+ return <main id="main" className="container page-main server-session">{active?<SessionPlayer key={active.id} id={active.id} title={active.title} execute={execute} local/>:<section className="panel"><span className="badge">QUIZ CÁ NHÂN</span><h1>{deck.title}</h1><p>Mỗi câu có 5 giây. Chọn đáp án để xem đúng/sai; sau 1,5 giây sẽ tự chuyển câu. Thời gian vẫn tính khi rời tab.</p><p>Phiên và kết quả của bộ từ cá nhân này được lưu trên trình duyệt đang dùng.</p><button className="button primary" onClick={start}>Bắt đầu / tiếp tục quiz</button><p role="status">{error}</p></section>}</main>;
 }

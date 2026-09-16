@@ -1,0 +1,11 @@
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
+import { Pager,param,pageNumber,type AdminSearch } from "@/components/admin-pagination";
+export default async function AttemptsPage({searchParams}:{searchParams:AdminSearch}){
+ await requireAdmin();const s=await searchParams,q=param(s.q).trim().slice(0,160),kind=param(s.kind);
+ const where={...(q?{OR:[{title:{contains:q,mode:"insensitive" as const}},{user:{displayName:{contains:q,mode:"insensitive" as const}}}]}:{}),...(kind==="QUIZ"||kind==="TEST"?{kind}:{})} as import("@/generated/prisma/client").Prisma.AttemptWhereInput;
+ const total=await db.attempt.count({where}),page=Math.min(pageNumber(s.page),Math.max(1,Math.ceil(total/20)));
+ const rows=await db.attempt.findMany({where,take:20,skip:(page-1)*20,orderBy:[{completedAt:"desc"},{id:"asc"}],select:{id:true,title:true,kind:true,score:true,answers:true,completedAt:true,user:{select:{displayName:true}}}});
+ return <><header className="admin-heading"><div><span className="admin-eyebrow">KẾT QUẢ HỌC TẬP</span><h1>Bài đã hoàn thành</h1><p>Kết quả đã lưu trên database; lịch sử học thử trong trình duyệt chưa được đồng bộ.</p></div></header><form className="admin-filters"><label>Tìm kiếm<input name="q" defaultValue={q} placeholder="Tên bài hoặc người học" maxLength={160}/></label><label>Loại bài<select name="kind" defaultValue={kind}><option value="">Tất cả</option><option value="QUIZ">Quiz</option><option value="TEST">Test</option></select></label><button className="button secondary">Lọc</button></form><div className="admin-table-wrap"><table><thead><tr><th>Người học</th><th>Bài làm</th><th>Loại</th><th>Số câu đúng</th><th>Ngày nộp</th><th>Chi tiết</th></tr></thead><tbody>{rows.map(a=><tr key={a.id}><td>{a.user.displayName}</td><td>{a.title}</td><td>{a.kind}</td><td>{a.score}</td><td>{a.completedAt.toLocaleString("vi-VN",{timeZone:"Asia/Ho_Chi_Minh"})}</td><td><Link className="admin-edit" href={`/admin/attempts/${encodeURIComponent(a.id)}`}>Xem bài →</Link></td></tr>)}</tbody></table>{!rows.length&&<p className="admin-empty">Chưa có kết quả phù hợp trên database.</p>}</div><Pager page={page} total={total} base={`/admin/attempts?q=${encodeURIComponent(q)}&kind=${encodeURIComponent(kind)}`}/></>;
+}

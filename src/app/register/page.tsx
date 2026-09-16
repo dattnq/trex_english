@@ -1,2 +1,8 @@
+import { redirect } from "next/navigation";
 import AuthScreen from "@/components/auth-screen";
-export default function Page() { return <AuthScreen register />; }
+import { getViewer } from "@/lib/auth";
+export const metadata = { title: "Đăng ký | T-Rex Edu" };
+export default async function RegisterPage() {
+  if (await getViewer()) redirect("/account");
+  return <AuthScreen register />;
+}

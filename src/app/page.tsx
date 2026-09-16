@@ -19,6 +19,7 @@ export default function Home() {
         (state.known[d.id]?.length || 0) > 0 &&
         (state.known[d.id]?.length || 0) < d.words.length,
     ) || decks[0];
+  if(!current)return <main id="main" className="container page-main"><h1>Học tiếng Anh cùng T-Rex</h1><p>Thư viện đang được chuẩn bị. Hãy quay lại sau hoặc tạo bộ từ của bạn.</p><Link className="button primary" href="/decks">Mở thư viện</Link></main>;
   const count = state.known[current.id]?.length || 0;
   return (
     <main id="main" className="home-main">
@@ -174,12 +175,12 @@ export default function Home() {
                     {count} / {current.words.length} từ đã nhớ
                   </span>
                   <strong>
-                    {Math.round((count / current.words.length) * 100)}%
+                    {Math.round((count / Math.max(1,current.words.length)) * 100)}%
                   </strong>
                 </div>
                 <progress
                   value={count}
-                  max={current.words.length}
+                  max={Math.max(1,current.words.length)}
                   aria-label="Tiến độ bộ từ"
                 />
                 <Link

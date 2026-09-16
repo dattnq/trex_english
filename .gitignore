@@ -42,3 +42,9 @@ next-env.d.ts
 
 # Generated Prisma Client
 /src/generated/prisma/
+
+# Public environment template only
+!.env.example
+
+# Private data exports
+/.backups/

@@ -10,7 +10,17 @@
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:status": "prisma migrate status"
+    "db:status": "prisma migrate status",
+    "db:seed": "node scripts/seed.cjs",
+    "test:logic": "node scripts/test-logic.cjs",
+    "test:auth": "node --test scripts/test-auth.cjs",
+    "test:admin": "node --test scripts/test-admin.cjs",
+    "test:pronunciation": "node --test scripts/test-pronunciation.cjs",
+    "ops:check": "node scripts/check-readiness.cjs",
+    "ops:finalize": "node scripts/finalize-sessions.cjs",
+    "ops:backup": "node scripts/backup.cjs",
+    "test:learning": "node --test scripts/test-learning.cjs",
+    "test:ops": "node --test scripts/test-ops.cjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

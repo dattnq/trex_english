@@ -38,6 +38,7 @@ model Profile {
   wordProgress WordProgress[]
   activity     DailyWordActivity[]
   attempts     Attempt[]
+  sessions     LearningSession[]
 
   @@map("profiles")
 }
@@ -191,4 +192,18 @@ model Attempt {
   @@index([deckId])
   @@index([testId])
   @@map("attempts")
+}
+
+model LearningSession {
+  id        String   @id @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  kind      AttemptKind
+  sourceId  String   @map("source_id")
+  title     String
+  state     Json     @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, updatedAt])
+  @@map("learning_sessions")
 }
