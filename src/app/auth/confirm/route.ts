@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ensureProfile } from "@/lib/auth";
+import { ensureProfile, getAuthDestination } from "@/lib/auth";
 import { appOrigin } from "@/lib/auth-config";
 
 export async function GET(request: NextRequest) {
@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
         ? await supabase.auth.exchangeCodeForSession(code)
         : await supabase.auth.verifyOtp({ token_hash: hash!, type: type as "email" | "recovery" });
       if (!error && data.user?.email_confirmed_at) {
-        await ensureProfile(data.user);
-        destination = type === "recovery" || (code && request.nextUrl.searchParams.get("next") === "reset-password") ? "/reset-password" : "/account";
+        const profile = await ensureProfile(data.user);
+        destination = type === "recovery" || (code && request.nextUrl.searchParams.get("next") === "reset-password") ? "/reset-password" : getAuthDestination(profile.role);
       }
     } catch {
       destination = "/auth/error";

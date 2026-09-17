@@ -6,6 +6,10 @@ import { db } from "./db";
 import type { Viewer } from "./auth-types";
 import { cache } from "react";
 
+export function getAuthDestination(role: Viewer["role"]) {
+  return role === "ADMIN" ? "/admin" : "/";
+}
+
 export async function ensureProfile(user: User) {
   if (!user.email_confirmed_at) {
     throw new Error("Email chưa được xác thực.");

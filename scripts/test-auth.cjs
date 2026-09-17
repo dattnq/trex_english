@@ -26,8 +26,8 @@ function context(overrides = {}) {
     return overrides[name] ?? defaults[name];
   }]));
   const db = { profile: {
-    upsert: async args => { calls.push({ name: 'profile', args: [args] }); return { ...args.create }; },
-    findUnique: async () => ({ id: user.id, displayName: 'Người học', role: 'LEARNER' }),
+    upsert: async args => { calls.push({ name: 'profile', args: [args] }); return { ...args.create, role: overrides.role ?? args.create.role }; },
+    findUnique: async () => ({ id: user.id, displayName: 'Người học', role: overrides.role ?? 'LEARNER' }),
   }};
   const cache = new Map();
   function load(file) {
@@ -35,10 +35,11 @@ function context(overrides = {}) {
     if (cache.has(absolute)) return cache.get(absolute).exports;
     const loaded = { exports: {} }; cache.set(absolute, loaded);
     const source = ts.transpileModule(fs.readFileSync(absolute, 'utf8'), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
     }).outputText;
     const customRequire = name => {
       if (name === 'server-only') return {};
+      if (name === '@/components/auth-screen') return { default: () => null };
       if (name === 'react') return { cache: fn => fn };
       if (name === 'next/navigation') return { redirect: url => { throw Object.assign(new Error('redirect'), { url }); } };
       if (name === 'next/cache') return { revalidatePath: () => {} };
@@ -79,7 +80,7 @@ test('signup requests confirmation and cannot pass an admin role', async () => {
 });
 test('login creates only learner profile and redirects after confirmation', async () => {
   const c = context();
-  await assert.rejects(c.actions.loginAction({}, form(registration)), e => e.url === '/account');
+  await assert.rejects(c.actions.loginAction({}, form(registration)), e => e.url === '/');
   const profile = c.calls.find(c => c.name === 'profile').args[0];
   assert.equal(profile.create.role, 'LEARNER'); assert.deepEqual(profile.update, {});
   assert.equal(c.calls[0].args[0].password, registration.password);
@@ -136,7 +137,7 @@ test('callback supports OTP and PKCE and never redirects to an untrusted URL', a
   assert.equal(result.headers.get('location'), 'https://trex.test/reset-password');
   assert.equal(result.headers.get('cache-control'), 'private, no-store');
   const pkce = context(); const redirect = await pkce.load('src/app/auth/confirm/route.ts').GET({ nextUrl: new URL('https://trex.test/auth/confirm?code=fake&next=https://evil.invalid') });
-  assert.equal(redirect.headers.get('location'), 'https://trex.test/account');
+  assert.equal(redirect.headers.get('location'), 'https://trex.test/');
   const invalid = context(); const error = await invalid.load('src/app/auth/confirm/route.ts').GET({ nextUrl: new URL('https://trex.test/auth/confirm?token_hash=fake&type=unknown') });
   assert.equal(error.headers.get('location'), 'https://trex.test/auth/error'); assert.equal(invalid.calls.length, 0);
 });
@@ -164,3 +165,37 @@ test('canceled or failed Google callback does not create a profile', async () =>
   assert.equal(r.headers.get('location'),'https://trex.test/auth/error');assert.equal(canceled.calls.length,0);
   const failed=context({exchangeCodeForSession:{data:{user:null},error:{message:'invalid code'}}});await failed.load('src/app/auth/confirm/route.ts').GET({nextUrl:new URL('https://trex.test/auth/confirm?code=expired')});assert(!failed.calls.some(x=>x.name==='profile'));
 });
+
+for (const [role, destination] of [['LEARNER', '/'], ['ADMIN', '/admin']]) {
+  test(`${role} password login uses the stored profile role`, async () => {
+    const c = context({ role });
+    await assert.rejects(c.actions.loginAction({}, form(registration)), e => e.url === destination);
+  });
+
+  test(`${role} immediate signup session uses the role destination`, async () => {
+    const seed = context();
+    const c = context({ role, signUp: { data: { user: seed.user, session: {} }, error: null } });
+    await assert.rejects(c.actions.registerAction({}, form(registration)), e => e.url === destination);
+  });
+
+  test(`${role} authenticated login and register pages redirect automatically`, async () => {
+    for (const page of ['login', 'register']) {
+      const c = context({ role });
+      await assert.rejects(c.load(`src/app/${page}/page.tsx`).default({ searchParams: Promise.resolve({}) }), e => e.url === destination);
+    }
+  });
+
+  test(`${role} callback routes OAuth and email confirmation while preserving recovery`, async () => {
+    for (const [query, expected] of [
+      ['code=fake', destination],
+      ['token_hash=fake&type=email', destination],
+      ['code=fake&next=https://evil.invalid', destination],
+      ['token_hash=fake&type=recovery', '/reset-password'],
+      ['code=fake&next=reset-password', '/reset-password'],
+    ]) {
+      const c = context({ role });
+      const response = await c.load('src/app/auth/confirm/route.ts').GET({ nextUrl: new URL(`https://trex.test/auth/confirm?${query}`) });
+      assert.equal(response.headers.get('location'), `https://trex.test${expected}`);
+    }
+  });
+}

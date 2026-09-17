@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { ensureProfile } from "@/lib/auth";
+import { ensureProfile, getAuthDestination } from "@/lib/auth";
 import { appOrigin, googleProviderEnabled } from "@/lib/auth-config";
 import {
   emailSchema,
@@ -32,7 +32,7 @@ export async function registerAction(
       ...failure("Kiểm tra lại những ô được đánh dấu."),
       errors: parsed.error.flatten().fieldErrors,
     };
-  let signedIn = false;
+  let destination: string | undefined;
   try {
     const supabase = await createClient(true);
     const { displayName, email, password } = parsed.data;
@@ -51,17 +51,17 @@ export async function registerAction(
           : "Chưa tạo được tài khoản. Hãy kiểm tra thông tin hoặc thử lại sau.",
       );
     if (data.session && data.user?.email_confirmed_at) {
-      await ensureProfile(data.user);
-      signedIn = true;
+      const profile = await ensureProfile(data.user);
+      destination = getAuthDestination(profile.role);
     }
   } catch {
     return failure(
       "Chưa hoàn tất kết nối. Nếu đã nhận email, hãy xác nhận rồi đăng nhập lại.",
     );
   }
-  if (signedIn) {
+  if (destination) {
     revalidatePath("/", "layout");
-    redirect("/account");
+    redirect(destination);
   }
   return {
     status: "success",
@@ -82,6 +82,7 @@ export async function loginAction(
       ...failure("Kiểm tra lại thông tin đăng nhập."),
       errors: parsed.error.flatten().fieldErrors,
     };
+  let destination: string;
   try {
     const supabase = await createClient(true);
     const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
@@ -94,14 +95,15 @@ export async function loginAction(
           : "Email hoặc mật khẩu chưa đúng, hoặc email chưa được xác nhận.",
       );
     }
-    await ensureProfile(data.user);
+    const profile = await ensureProfile(data.user);
+    destination = getAuthDestination(profile.role);
   } catch {
     return failure(
       "Dịch vụ đăng nhập tạm thời chưa sẵn sàng. Hãy thử lại sau.",
     );
   }
   revalidatePath("/", "layout");
-  redirect("/account");
+  redirect(destination);
 }
 export async function logoutAction(): Promise<FormState> {
   try {

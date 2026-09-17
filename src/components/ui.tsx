@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Deck } from "@/lib/learning-data";
 
 const paths: Record<string, ReactNode> = {
+  settings: <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>,
   home: <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" /></>,
   cards: <><rect x="7" y="3" width="14" height="17" rx="3" /><path d="M3 7v12a4 4 0 0 0 4 4M11 8h6M11 12h4" /></>,
   test: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V2h6v2M9 10h6M9 14h6M9 18h3" /></>,
