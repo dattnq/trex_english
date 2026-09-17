@@ -30,7 +30,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   if (error || !data.user?.email_confirmed_at) return null;
   const profile = await db.profile.findUnique({
     where: { id: data.user.id },
-    select: { id: true, displayName: true, role: true },
+    select: { id: true, displayName: true, role: true, dailyGoal: true, timeZone: true },
   });
   if (!profile) return null;
   return { ...profile, email: data.user.email ?? "" };

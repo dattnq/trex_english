@@ -29,3 +29,8 @@ export const roleSchema = z.object({
   userId: z.uuid(),
   role: z.enum(["LEARNER", "ADMIN"]),
 });
+
+export const updateProfileSchema = z.object({
+  displayName: z.string().trim().min(2, "Tên cần ít nhất 2 ký tự.").max(80, "Tên tối đa 80 ký tự."),
+  dailyGoal: z.coerce.number().int().refine(v => [5, 10, 15, 20, 30].includes(v), { message: "Mục tiêu không hợp lệ." }),
+});

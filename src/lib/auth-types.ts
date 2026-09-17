@@ -3,10 +3,12 @@ export type Viewer = {
   email: string;
   displayName: string;
   role: "LEARNER" | "ADMIN";
+  dailyGoal: number;
+  timeZone: string;
 };
 
 export type FormState = {
   message: string;
   status?: "error" | "success";
-  errors?: Partial<Record<"displayName" | "email" | "password" | "confirmPassword", string[]>>;
+  errors?: Partial<Record<"displayName" | "email" | "password" | "confirmPassword" | "dailyGoal" | "timeZone", string[]>>;
 };

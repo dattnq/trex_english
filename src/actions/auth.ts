@@ -9,7 +9,10 @@ import {
   loginSchema,
   registerSchema,
   resetPasswordSchema,
+  updateProfileSchema,
 } from "@/lib/validation";
+import { db } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
 import type { FormState } from "@/lib/auth-types";
 
 const failure = (message: string): FormState => ({ status: "error", message });
@@ -223,4 +226,33 @@ export async function googleLoginAction(): Promise<FormState> {
   }
   // Next redirects throw; keep this outside the catch block.
   redirect(destination);
+}
+
+export async function updateProfileAction(
+  _previous: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const viewer = await requireUser();
+  const parsed = updateProfileSchema.safeParse({
+    displayName: form.get("displayName"),
+    dailyGoal: form.get("dailyGoal"),
+  });
+  if (!parsed.success)
+    return {
+      ...failure("Kiểm tra lại thông tin vừa nhập."),
+      errors: parsed.error.flatten().fieldErrors as FormState["errors"],
+    };
+  try {
+    await db.profile.update({
+      where: { id: viewer.id },
+      data: {
+        displayName: parsed.data.displayName,
+        dailyGoal: parsed.data.dailyGoal,
+      },
+    });
+  } catch {
+    return failure("Chưa lưu được. Hãy thử lại sau.");
+  }
+  revalidatePath("/", "layout");
+  return { status: "success", message: "Đã cập nhật thông tin cá nhân." };
 }
