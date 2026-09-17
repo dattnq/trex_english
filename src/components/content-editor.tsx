@@ -1,5 +1,6 @@
 "use client";
 import { useEffect,useRef,useState } from "react";
+import ReadingTestEditor from "./reading-test-editor";
 import PronunciationFields from "@/components/pronunciation-fields";
 import { useRouter } from "next/navigation";
 import { writeContent,deleteContent } from "@/actions/content";
@@ -60,25 +61,7 @@ export default function ContentEditor({initial}:{initial:ContentInput}) {
       </fieldset>)}
       <button type="button" disabled={value.words.length>=100} onClick={()=>setValue({...value,
         words:[...value.words,{id:crypto.randomUUID(),term:"",phonetic:"",meaning:"",example:""}]})}>Thêm từ</button>
-    </>:<>
-      <h2>Câu hỏi ({value.questions.length}/100)</h2>
-      <p>Mỗi câu có 4 lựa chọn và một đáp án đúng. Dùng nút lên/xuống để đổi thứ tự.</p>
-      {value.questions.map((q,i)=><fieldset className="panel" key={i}><legend>Câu {i+1}</legend>
-        <label>Câu hỏi<textarea value={q.prompt} onChange={e=>setValue({...value,
-          questions:value.questions.map((old,n)=>n===i?{...old,prompt:e.target.value}:old)})}/></label>
-        {q.options.map((o,j)=><label key={j}>Đáp án {String.fromCharCode(65+j)}<input value={o}
-          onChange={e=>setValue({...value,questions:value.questions.map((old,n)=>n===i?
-            {...old,options:old.options.map((v,k)=>k===j?e.target.value:v)}:old)})}/></label>)}
-        <label>Đáp án đúng<select value={q.answer} onChange={e=>setValue({...value,
-          questions:value.questions.map((old,n)=>n===i?{...old,answer:Number(e.target.value)}:old)})}>
-          {[0,1,2,3].map(n=><option key={n} value={n}>{String.fromCharCode(65+n)}</option>)}</select></label>
-        <label>Giải thích<textarea value={q.explanation} onChange={e=>setValue({...value,
-          questions:value.questions.map((old,n)=>n===i?{...old,explanation:e.target.value}:old)})}/></label>
-        <button type="button" disabled={i===0} onClick={()=>move("questions",i,-1)}>↑ Lên</button> <button type="button" disabled={i===value.questions.length-1} onClick={()=>move("questions",i,1)}>↓ Xuống</button> <button type="button" onClick={()=>setValue({...value,questions:value.questions.filter((_,n)=>n!==i)})}>Bỏ câu này</button>
-      </fieldset>)}
-      <button type="button" disabled={value.questions.length>=100} onClick={()=>setValue({...value,
-        questions:[...value.questions,{prompt:"",options:["","","",""],answer:0,explanation:""}]})}>Thêm câu</button>
-    </>}
+    </>:<ReadingTestEditor questions={value.questions} onChange={questions=>setValue({...value,questions})}/>}
     </fieldset>
     <div className="admin-savebar"><span>{dirty?"Có thay đổi chưa lưu":"Nội dung đã tải"}</span><button className="button primary" disabled={pending}>{pending?"Đang lưu...":"Lưu nội dung"}</button>
     {value.id&&<button type="button" disabled={pending} onClick={async()=>{

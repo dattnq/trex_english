@@ -154,6 +154,8 @@ model Test {
 }
 
 model TestQuestion {
+  reading     Json?    @db.JsonB
+  number      Int?
   id          String   @id @default(uuid())
   testId      String   @map("test_id")
   position    Int

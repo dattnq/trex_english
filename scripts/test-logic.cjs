@@ -1,7 +1,14 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),ts=require("typescript");
 const code=ts.transpileModule(fs.readFileSync("src/lib/session-engine.ts","utf8"),
   {compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
-const model={exports:{}};new Function("exports","module","require",code)(model.exports,model,require);
+function loadReading(name) {
+  if(name !== '@/lib/reading') return require(name);
+  const reading={exports:{}};
+  const source=ts.transpileModule(fs.readFileSync('src/lib/reading.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+  new Function('exports','module','require',source)(reading.exports,reading,require);
+  return reading.exports;
+}
+const model={exports:{}};new Function("exports","module","require",code)(model.exports,model,loadReading);
 const {begin,step,score,publicState}=model.exports;
 const questions=[{prompt:"a",options:["a","b"],answer:0,explanation:"a"},
   {prompt:"b",options:["a","b"],answer:1,explanation:"b"}];

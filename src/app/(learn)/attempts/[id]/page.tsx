@@ -1,9 +1,10 @@
 import { db } from "@/lib/db";
 import { getViewer } from "@/lib/auth";
 import { z } from "zod";
+import { questionSchema } from "@/lib/session-engine";
 
 import AttemptResult, { ResultReview } from "@/components/attempt-result";
-const questions=z.array(z.object({prompt:z.string(),options:z.array(z.string()),answer:z.number(),explanation:z.string()}));
+const questions=z.array(questionSchema);
 export default async function Page({params}:{params:Promise<{id:string}>}){
  const {id}=await params,viewer=await getViewer();
  const row=viewer?await db.attempt.findFirst({where:{id,userId:viewer.id}}):null;

@@ -92,6 +92,7 @@ export async function writeContent(raw: ContentInput): Promise<ContentResult> {
             await tx.testQuestion.createMany({
               data: value.questions.map((q, position) => ({
                 ...q,
+                reading: q.reading ?? undefined,
                 testId: id,
                 position,
               })),

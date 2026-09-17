@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { readingSchema } from "@/lib/reading";
 export const questionSchema = z.object({
+  reading: readingSchema.nullish(), number: z.number().int().min(1).max(999).nullish(),
   prompt: z.string().min(1), options: z.array(z.string()).min(2),
   answer: z.number().int().nonnegative(), explanation: z.string(),
 }).refine(q => q.answer < q.options.length);
@@ -63,7 +65,7 @@ export function step(input: State, cmd: Command, now: number): State {
   return s;
 }
 export function publicState(s: State) {
-  const questions = s.questions.map(q => ({ prompt: q.prompt, options: q.options }));
+  const questions = s.questions.map(q => ({ prompt: q.prompt, options: q.options, ...(q.reading ? { reading: q.reading } : {}), ...(q.number ? { number: q.number } : {}) }));
   const q = s.questions[s.index];
   return {
     quiz: s.quiz, questions, answers: s.answers, index: s.index,

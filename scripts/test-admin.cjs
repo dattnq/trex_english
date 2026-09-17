@@ -76,3 +76,41 @@ test('poll without a transition does not write the database',async()=>{
  const c=context(),engine=c.load('src/lib/session-engine.ts');c.tx.learningSession={findFirst:async()=>({state:engine.begin([question],false,180000,Date.now())}),update:async()=>{throw Error('unexpected write');}};
  assert.equal((await c.load('src/actions/attempts.ts').sessionCommand(targetId,{type:'poll',revision:0})).phase,'answering');
 });
+
+test('reading groups and original question numbers survive admin save and session snapshots',async()=>{
+ const c=context();
+ const reading={id:'group-1',documents:[{format:'email',title:'Team meeting',content:'From: Anne\nThe meeting starts at ten.'}]};
+ const q={...question,number:147,reading};
+ assert.equal((await c.actions.writeContent({...content,kind:'test',words:[],questions:[q]})).ok,true);
+ const storedQuestion=c.calls.find(x=>x.name==='question.createMany').arg.data[0];
+ assert.deepEqual(storedQuestion.reading,reading);assert.equal(storedQuestion.number,147);
+ let stored;
+ c.tx.learningSession={findUnique:async()=>null,findFirst:async()=>null,create:async a=>{stored=a.data;}};
+ c.tx.test.findFirst=async()=>({title:'Reading',minutes:10,questions:[q]});
+ await c.load('src/actions/attempts.ts').startSession('TEST','reading',targetId);
+ const engine=c.load('src/lib/session-engine.ts'),dto=engine.publicState(stored.state);
+ assert.deepEqual(dto.questions[0].reading,reading);assert.equal(dto.questions[0].number,147);
+ assert(!('answer' in dto.questions[0]));assert(!('explanation' in dto.questions[0]));
+ const restored=engine.stateSchema.parse(JSON.parse(JSON.stringify(stored.state)));
+ assert.deepEqual(restored.questions[0].reading,reading);
+});
+
+test('reading input rejects empty passages, mismatched groups and duplicate displayed numbers',()=>{
+ const c=context(),schema=c.load('src/lib/content-schema.ts').contentInput;
+ const reading={id:'shared',documents:[{format:'website',title:'Shop',content:'Opening hours'}]};
+ for(const qs of [
+  [{...question,reading:{...reading,documents:[{...reading.documents[0],content:''}]}}],
+  [{...question,number:147},{...question,number:147}],
+  [{...question,reading},{...question,reading:{...reading,documents:[{...reading.documents[0],content:'Different'}]}}],
+ ])assert.equal(schema.safeParse({...content,kind:'test',questions:qs}).success,false);
+});
+
+test('bulk import accepts numbered multiline questions and rejects incomplete or duplicate entries',()=>{
+ const {parseQuestionImport,questionImportExample}=context().load('src/lib/question-import.ts');
+ const result=parseQuestionImport(questionImportExample.replace(/\n/g,'\r\n'));
+ assert.equal(result.length,2);assert.equal(result[0].number,147);assert.equal(result[0].answer,1);
+ assert.equal(result[1].answer,2);
+ for(const text of ['',questionImportExample.replace('Answer: B',''),questionImportExample.replace('D. To introduce a colleague',''),questionImportExample.replace('148.','147.'),questionImportExample.replace('Answer: B','Answer: X')]) assert.throws(()=>parseQuestionImport(text));
+ const multiline=parseQuestionImport('1. First line\nSecond line\nA. First\ncontinued\nB. Second\nC. Third\nD. Fourth\nĐáp án: D\nGiải thích: Correct\nMore explanation');
+ assert.equal(multiline[0].prompt,'First line\nSecond line');assert.equal(multiline[0].options[0],'First\ncontinued');assert.equal(multiline[0].answer,3);
+});

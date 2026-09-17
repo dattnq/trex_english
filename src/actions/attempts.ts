@@ -7,6 +7,7 @@ import { readDeck } from "@/lib/learning";
 import { begin, step, stateSchema, publicState, score,
   type Question, type Command } from "@/lib/session-engine";
 import type { Prisma } from "@/generated/prisma/client";
+import { readingSchema } from "@/lib/reading";
 function shuffle<T>(items:T[]) {
   const a=[...items];
   for(let i=a.length-1;i>0;i--) { const j=randomInt(i+1); [a[i],a[j]]=[a[j],a[i]]; }
@@ -45,7 +46,7 @@ export async function startSession(kind:"QUIZ"|"TEST", sourceId:string, id:strin
         include:{questions:{orderBy:{position:"asc"}}}});
       if(!test || !test.questions.length) throw new Error("Đề chưa sẵn sàng.");
       title=test.title;duration=test.minutes*60000;
-      questions=test.questions.map(q=>({prompt:q.prompt,options:q.options,
+      questions=test.questions.map(q=>({prompt:q.prompt,options:q.options, reading:q.reading ? readingSchema.parse(q.reading) : null, number:q.number,
         answer:q.answer,explanation:q.explanation}));
     }
     const state=begin(questions,kind==="QUIZ",duration,Date.now());

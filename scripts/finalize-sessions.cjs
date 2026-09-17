@@ -2,7 +2,13 @@
 require('dotenv/config');
 const fs=require('node:fs'),ts=require('typescript'),{Client}=require('pg');
 const compiled=ts.transpileModule(fs.readFileSync('src/lib/session-engine.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
-const engine={exports:{}};new Function('exports','module','require',compiled)(engine.exports,engine,require);
+const engine={exports:{}};new Function('exports','module','require',compiled)(engine.exports,engine,name=>{
+ if(name!=='@/lib/reading')return require(name);
+ const reading={exports:{}};
+ const source=ts.transpileModule(fs.readFileSync('src/lib/reading.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+ new Function('exports','module','require',source)(reading.exports,reading,require);
+ return reading.exports;
+});
 const {stateSchema,step,score}=engine.exports;
 (async()=>{const db=new Client({connectionString:process.env.DIRECT_URL||process.env.DATABASE_URL,connectionTimeoutMillis:8000});let finished=0,advanced=0;try{await db.connect();
  const candidates=await db.query("SELECT id FROM learning_sessions WHERE state->>'phase'<>'finished' AND (state->>'deadline')::numeric<=$1 ORDER BY updated_at LIMIT 100",[Date.now()]);

@@ -1,6 +1,7 @@
+import type { Reading } from "@/lib/reading";
 export type Word = { id: string; term: string; phonetic: string; meaning: string; example: string };
 export type Deck = { id: string; title: string; description: string; category: string; level: string; color: string; symbol: string; words: Word[]; custom?: boolean };
-export type Question = { prompt: string; options: string[]; answer: number; explanation: string };
+export type Question = { reading?: Reading | null; number?: number | null; prompt: string; options: string[]; answer: number; explanation: string };
 export type Attempt = { id: string; title: string; date: string; questions: Question[]; answers: number[]; score: number };
 const words = (rows: string[][]): Word[] => rows.map(([term, phonetic, meaning, example], i) => ({ id: String(i + 1), term, phonetic, meaning, example }));
 export const starterDecks: Deck[] = [
