@@ -52,3 +52,43 @@ test('404 is a normal no-result outcome and recording requests use a fixed endpo
 test('available recordings are returned with their matching pronunciation',async()=>{
  const r=await context(async()=>({status:200,ok:true,json:async()=>[{phonetics:[{text:'/həloʊ/',audio:'https://api.dictionaryapi.dev/hello.mp3'}]}]})).load('src/app/api/pronunciation/route.ts').GET(request('hello',true));const result=await r.json();assert.equal(result.ipa,'/həloʊ/');assert(result.audioUrl.endsWith('.mp3'));
 });
+
+test('meaning lookup bypasses bundled IPA and returns dictionary definitions',async()=>{
+ let calls=0;
+ const route=context(async()=>{calls++;return {status:200,ok:true,json:async()=>[{meanings:[{partOfSpeech:'noun',definitions:[{definition:'A greeting.',example:'Hello there!'}]}]}]};}).load('src/app/api/pronunciation/route.ts');
+ const req=request('hello');req.nextUrl.searchParams.set('meanings','1');
+ const response=await route.GET(req),body=await response.json();
+ assert.equal(response.status,200);assert.equal(calls,2);assert(body.ipa);
+ assert.deepEqual(body.definitions,[{partOfSpeech:'noun',definition:'A greeting.',example:'Hello there!'}]);
+});
+test('meaning lookup exposes an outage even when bundled IPA is available',async()=>{
+ const req=request('hello');req.nextUrl.searchParams.set('meanings','1');
+ const response=await c.load('src/app/api/pronunciation/route.ts').GET(req);
+ assert.equal(response.status,503);assert.equal(response.headers.get('cache-control'),'no-store');
+});
+test('missing meanings return an empty list without inventing a definition',async()=>{
+ const req=request('hello');req.nextUrl.searchParams.set('meanings','1');
+ const response=await context(async()=>({status:404,ok:false})).load('src/app/api/pronunciation/route.ts').GET(req);
+ assert.equal(response.status,200);assert.deepEqual((await response.json()).definitions,[]);
+});
+test('definitions skip blanks and duplicates, keep examples and limit output',()=>{
+ const definitions=[{definition:'  '},{definition:' First ',example:' An example '},{definition:'First'},...Array.from({length:8},(_,i)=>({definition:'Sense '+i}))];
+ const result=p.parseDefinitions([{meanings:[{partOfSpeech:' noun ',definitions}]}]);
+ assert.equal(result.length,5);assert.deepEqual(result[0],{partOfSpeech:'noun',definition:'First',example:'An example'});
+ assert.equal(result[1].definition,'Sense 0');
+ assert.deepEqual(p.parseDefinitions(null),[]);
+});
+
+test('new meaning provider succeeds without contacting the unreachable old provider',async()=>{
+ const urls=[];
+ const route=context(async url=>{urls.push(url);return {status:200,ok:true,json:async()=>({entries:[{language:{code:'en'},partOfSpeech:'interjection',senses:[{definition:'A greeting.',examples:['Hello, everyone.']}]}]})};}).load('src/app/api/pronunciation/route.ts');
+ const req=request('hello');req.nextUrl.searchParams.set('meanings','1');
+ const r=await route.GET(req),body=await r.json();
+ assert.equal(r.status,200);assert.deepEqual(urls,['https://freedictionaryapi.com/api/v1/entries/en/hello']);
+ assert.equal(body.meaningSource,'freedictionaryapi');assert.equal(body.definitions[0].definition,'A greeting.');assert.equal(body.definitions[0].example,'Hello, everyone.');
+});
+test('meaning lookup falls back when the primary provider is offline',async()=>{
+ const route=context(async url=>{if(url.includes('freedictionaryapi.com'))throw Error('offline');return {status:200,ok:true,json:async()=>[{meanings:[{definitions:[{definition:'Fallback meaning.'}]}]}]};}).load('src/app/api/pronunciation/route.ts');
+ const req=request('hello');req.nextUrl.searchParams.set('meanings','1');
+ const r=await route.GET(req);assert.equal(r.status,200);assert.equal((await r.json()).definitions[0].definition,'Fallback meaning.');
+});
