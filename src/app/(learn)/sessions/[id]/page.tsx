@@ -9,5 +9,5 @@ export default async function Page({params}:{params:Promise<{id:string}>}) {
   const session=await db.learningSession.findFirst({where:{id,userId:viewer.id},
     select:{id:true,title:true}});
   if(!session)notFound();
-  return <main id="main" className="container page-main server-session"><SessionPlayer id={session.id} title={session.title}/></main>;
+  return <main id="main" className="container page-main exam-session"><SessionPlayer id={session.id} title={session.title}/></main>;
 }
