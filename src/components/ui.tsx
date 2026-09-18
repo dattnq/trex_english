@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { Deck } from "@/lib/learning-data";

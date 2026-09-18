@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { useState } from "react";
 export type TestSummary={id:string;title:string;level:string;category:string;minutes:number;color:string;questionCount:number};
 

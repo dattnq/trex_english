@@ -1,4 +1,31 @@
 @import "tailwindcss";
+
+html { scrollbar-gutter: stable; }
+.navigation-feedback {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 3px;
+  z-index: 10000;
+  pointer-events: none;
+  background: #21836b;
+  transform-origin: left;
+  animation: navigation-progress 1.6s ease-out both;
+}
+@keyframes navigation-progress {
+  from { transform: scaleX(.08); }
+  to { transform: scaleX(.9); }
+}
+.route-loading { min-height: 70vh; }
+.route-placeholder { background: #eaf0e4; border-radius: 12px; }
+.route-placeholder-title { width: min(320px, 70%); height: 38px; }
+.route-placeholder-description { width: min(480px, 90%); height: 18px; margin-top: 16px; }
+.route-placeholder-toolbar { height: 48px; margin: 36px 0 28px; }
+.route-placeholder-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.route-placeholder-card { height: 280px; }
+@media (max-width: 700px) {
+  .route-placeholder-grid { grid-template-columns: 1fr; }
+  .route-placeholder-card { height: 200px; }
+}
 :root {
   --ink: #203c3a;
   --muted: #74817f;

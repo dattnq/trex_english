@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import PronunciationLookup from "./pronunciation-lookup";
 import { useRouter } from "next/navigation";
 import { useLearning } from "./learning-provider";
