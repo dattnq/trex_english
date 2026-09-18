@@ -28,7 +28,7 @@ Answer: C
 
 Cũng chấp nhận `Đáp án:` và `Giải thích:`. Mỗi lựa chọn một dòng, đáp án bắt buộc, giải thích không bắt buộc. Số câu được giữ nguyên (ví dụ 147–200); không được trùng nhau. Tối đa 100 câu mỗi đề.
 
-Trong lúc thi, nhấn số câu để chuyển trực tiếp. Ô xanh là câu đã lưu lựa chọn, ô trắng là câu chưa trả lời, viền đậm là câu đang xem. Màu xanh không có nghĩa đáp án đúng. Đồng hồ và thời điểm nộp vẫn do máy chủ kiểm soát. Kết quả giữ bài đọc tại thời điểm bắt đầu phiên.
+Trong lúc thi, nhấn số câu để chuyển trực tiếp. Ô xanh là câu đã chọn đáp án, ô trắng là câu chưa trả lời, viền đậm là câu đang xem. Lựa chọn hiện ngay và được lưu nền; dòng trạng thái cho biết đang lưu hay đã lưu. Khi lưu lỗi, đáp án quay về giá trị đã được máy chủ xác nhận và có thông báo chọn lại. Màu xanh không có nghĩa đáp án đúng. Đồng hồ và thời điểm nộp vẫn do máy chủ kiểm soát. Kết quả giữ bài đọc tại thời điểm bắt đầu phiên.
 
 Đây là nhập văn bản có cấu trúc, chưa tự nhận dạng ảnh hoặc nhập trực tiếp tệp PDF/Word. Có thể sao chép nội dung văn bản từ tài liệu vào mẫu trên.
 

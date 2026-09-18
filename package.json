@@ -13,6 +13,7 @@
     "db:status": "prisma migrate status",
     "db:seed": "node scripts/seed.cjs",
     "test:logic": "node scripts/test-logic.cjs",
+    "test:session-sync": "node --test scripts/test-session-sync.cjs",
     "test:auth": "node --test scripts/test-auth.cjs",
     "test:admin": "node --test scripts/test-admin.cjs",
     "test:pronunciation": "node --test scripts/test-pronunciation.cjs",
