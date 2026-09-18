@@ -1,26 +1,40 @@
 "use client";
 import Image from "next/image";
 import Link from "@/components/navigation-link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLearning, dayKey } from "@/components/learning-provider";
 import { DeckArt, DeckCard, Icon, SectionHeading } from "@/components/ui";
+import PageLoading from "@/components/page-loading";
 
 export default function Home() {
-  const { state, decks, update } = useLearning();
-  const [showMeaning, setShowMeaning] = useState(false);
-  const learned = Object.values(state.known).reduce(
-    (sum, ids) => sum + ids.length,
-    0,
-  );
-  const today = state.activity[dayKey()]?.length || 0;
+  const { state, decks, update, ready, account, attemptCount } = useLearning();
+  const [flippedWord, setFlippedWord] = useState<string | null>(null);
+  const [day, setDay] = useState(dayKey);
+  useEffect(() => {
+    const refreshDay = () => setDay(dayKey());
+    const timer = window.setInterval(refreshDay, 60000);
+    window.addEventListener("focus", refreshDay);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refreshDay); };
+  }, []);
+  const knownCount = (deck: (typeof decks)[number]) =>
+    deck.words.filter(word => state.known[deck.id]?.includes(word.id)).length;
+  const availableDecks = decks.filter(deck => deck.words.length > 0);
+  const learned = availableDecks.reduce((sum, deck) => sum + knownCount(deck), 0);
+  const today = state.activity[day]?.length || 0;
   const current =
-    decks.find(
-      (d) =>
-        (state.known[d.id]?.length || 0) > 0 &&
-        (state.known[d.id]?.length || 0) < d.words.length,
-    ) || decks[0];
+    availableDecks.find(d => knownCount(d) > 0 && knownCount(d) < d.words.length)
+    || availableDecks.find(d => knownCount(d) < d.words.length)
+    || availableDecks[0];
+  if (!ready) return <PageLoading />;
   if(!current)return <main id="main" className="container page-main"><h1>Học tiếng Anh cùng T-Rex</h1><p>Thư viện đang được chuẩn bị. Hãy quay lại sau hoặc tạo bộ từ của bạn.</p><Link className="button primary" href="/decks">Mở thư viện</Link></main>;
-  const count = state.known[current.id]?.length || 0;
+  const count = knownCount(current);
+  const complete = count === current.words.length;
+  // A stable order and Vietnam calendar day keep the suggestion consistent across reloads.
+  const dailyWords = availableDecks.flatMap(deck => deck.words.map(word => ({ deck, word })))
+    .sort((a, b) => a.deck.id.localeCompare(b.deck.id, "en") || a.word.id.localeCompare(b.word.id, "en"));
+  const daily = dailyWords[Math.floor(Date.parse(`${day}T00:00:00Z`) / 86400000) % dailyWords.length];
+  const dailyKey = `${day}:${daily.deck.id}:${daily.word.id}`;
+  const showMeaning = flippedWord === dailyKey;
   return (
     <main id="main" className="home-main">
       <div className="container">
@@ -72,7 +86,7 @@ export default function Home() {
                 className="button primary"
                 href={`/decks/${current.id}/study`}
               >
-                Bắt đầu học ngay
+                {complete ? "Ôn lại bộ từ" : count ? "Tiếp tục học" : "Bắt đầu học ngay"}
                 <Icon name="arrow" size={18} />
               </Link>
               <Link href="/decks" className="text-link">
@@ -90,8 +104,9 @@ export default function Home() {
             </div>
             <button
               className={`hero-flashcard ${showMeaning ? "flipped" : ""}`}
-              onClick={() => setShowMeaning(!showMeaning)}
-              aria-label="Lật thẻ từ vựng curious"
+              onClick={() => setFlippedWord(showMeaning ? null : dailyKey)}
+              aria-label={`Lật thẻ ${daily.word.term} để xem ${showMeaning ? "tiếng Anh" : "nghĩa tiếng Việt"}`}
+              aria-pressed={showMeaning}
             >
               <span className="flashcard-top">
                 Từ hôm nay
@@ -100,16 +115,16 @@ export default function Home() {
               <span className="hero-card-illustration">
                 {showMeaning ? "✦" : "Aa"}
               </span>
-              <strong>{showMeaning ? "tò mò" : "curious"}</strong>
+              <strong title={showMeaning ? daily.word.meaning : daily.word.term}>{showMeaning ? daily.word.meaning : daily.word.term}</strong>
               <span className="phonetic">
                 {showMeaning
-                  ? "Eager to learn something new."
-                  : "/ˈkjʊəriəs/ · adjective"}
+                  ? daily.word.term
+                  : daily.word.phonetic}
               </span>
               <span className="flashcard-bottom">
                 <span>
                   {showMeaning
-                    ? "Luôn tò mò, luôn tiến bộ."
+                    ? "Chạm để xem lại từ"
                     : "Chạm để khám phá nghĩa"}
                 </span>
                 <Icon name="shuffle" size={17} />
@@ -162,7 +177,7 @@ export default function Home() {
         <div className="home-learning-grid">
           <section>
             <SectionHeading
-              title={count ? "Tiếp tục học" : "Bộ từ gợi ý"}
+              title={complete ? "Ôn lại để nhớ lâu" : count ? "Tiếp tục học" : "Bộ từ gợi ý"}
               href="/decks"
               action="Bộ từ của tôi"
             />
@@ -187,7 +202,7 @@ export default function Home() {
                   className="button primary"
                   href={`/decks/${current.id}/study`}
                 >
-                  {count ? "Tiếp tục học" : "Học bộ từ này"}
+                  {complete ? "Ôn lại bộ từ này" : count ? "Tiếp tục học" : "Học bộ từ này"}
                   <Icon name="arrow" size={17} />
                 </Link>
               </div>
@@ -199,19 +214,12 @@ export default function Home() {
               <span className="word-spark">✳</span>
             </div>
             <p className="word-title">
-              progress<span>/ˈprəʊɡres/</span>
+              {daily.word.term}{daily.word.phonetic && <span>{daily.word.phonetic}</span>}
             </p>
-            <p className="word-meaning">danh từ · sự tiến bộ</p>
-            <blockquote>
-              “A little progress each day
-              <br />
-              adds up to big results.”
-            </blockquote>
-            <p className="muted">
-              Một chút tiến bộ mỗi ngày sẽ tạo nên
-              <br />
-              những kết quả lớn.
-            </p>
+            <p className="word-meaning">{daily.word.meaning}</p>
+            {daily.word.example && <blockquote>“{daily.word.example}”</blockquote>}
+            <p className="muted">Từ bộ: {daily.deck.title}</p>
+            <Link className="text-link" href={`/decks/${daily.deck.id}`}>Khám phá bộ từ này<Icon name="arrow" size={16} /></Link>
           </aside>
         </div>
         <section className="library-section">
@@ -225,7 +233,7 @@ export default function Home() {
               <DeckCard
                 key={deck.id}
                 deck={deck}
-                known={state.known[deck.id]?.length}
+                known={knownCount(deck)}
                 saved={state.saved.includes(deck.id)}
                 onSave={() =>
                   update((s) => ({
@@ -247,7 +255,9 @@ export default function Home() {
             <div>
               <h3>Tiến độ học tập</h3>
               <p className="muted">
-                Tiến độ học của bạn được lưu trên trình duyệt này.
+                {account
+                  ? "Tiến độ được đồng bộ theo tài khoản khi có kết nối mạng."
+                  : "Tiến độ học thử được lưu trên trình duyệt này. Đăng nhập để đồng bộ giữa các thiết bị."}
               </p>
             </div>
           </div>
@@ -256,8 +266,8 @@ export default function Home() {
             <span>từ đã nhớ</span>
           </div>
           <div className="journey-number">
-            <strong>{state.attempts.length}</strong>
-            <span>bài đã hoàn thành</span>
+            <strong>{attemptCount}</strong>
+            <span>{account ? "bài đã hoàn thành" : "bài học thử đã làm"}</span>
           </div>
           <Link className="text-link" href="/dashboard">
             Xem hành trình

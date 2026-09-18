@@ -647,6 +647,12 @@ img {
   margin: 17px 0 8px;
 }
 .hero-flashcard>strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
   font-family: Georgia,serif;
   font-size: 32px;
   font-weight: 400;
@@ -659,6 +665,8 @@ img {
   font-weight: 400;
 }
 .hero-flashcard>.phonetic {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   margin: 9px 0 19px;
   font-size: 9px;
 }
@@ -903,6 +911,8 @@ progress::-moz-progress-bar {
   font-size: 10px;
 }
 .daily-word {
+  min-width: 0;
+  overflow-wrap: anywhere;
   background: #f2f1e7;
   border: 1px solid #eae8da;
   border-radius: 16px;
