@@ -23,9 +23,12 @@ export default function SessionPlayer({id,title,execute,local=false}:{id:string;
   latest.current=null;
   const controller=createSessionSync(command=>executor.current?executor.current(command):sessionCommand(id,command),next=>{
    if(next.state&&next.state!==latest.current){
+    const sameQuizQuestion=next.state.quiz&&next.state.phase==="answering"&&latest.current?.phase==="answering"&&latest.current.index===next.state.index;
     latest.current=next.state;
+    if(!sameQuizQuestion){
     clock.current={deadline:Math.max(0,next.state.deadline-next.state.serverNow),received:performance.now()};
     setLeft(Math.max(0,Math.ceil((next.state.deadline-next.state.serverNow)/1000)));
+    }
    }
    setView(next);
   });
@@ -41,7 +44,7 @@ export default function SessionPlayer({id,title,execute,local=false}:{id:string;
   return()=>{controller.dispose();sync.current=null;window.removeEventListener("beforeunload",beforeUnload);document.removeEventListener("click",leave,true);};
  },[id]);
  const lastPoll=useRef(0);
- const poll=useEffectEvent((force=false)=>{const s=latest.current,c=clock.current;const due=c.deadline-(performance.now()-c.received)<=0;if(s?.phase!=="finished"&&(force||!s||due||performance.now()-lastPoll.current>=5000)){lastPoll.current=performance.now();void send("poll");}});
+ const poll=useEffectEvent((force=false)=>{const s=latest.current,c=clock.current;const due=c.deadline-(performance.now()-c.received)<=0;if(s?.phase!=="finished"&&(force||!s||due||(!s.quiz&&performance.now()-lastPoll.current>=5000))){lastPoll.current=performance.now();void send("poll");}});
  useEffect(()=>{
   poll(true);const timer=window.setInterval(()=>poll(),500);
   const clockTimer=window.setInterval(()=>{const c=clock.current;setLeft(Math.max(0,Math.ceil((c.deadline-(performance.now()-c.received))/1000)));},100);
@@ -51,7 +54,7 @@ export default function SessionPlayer({id,title,execute,local=false}:{id:string;
  const active=state?.quiz?state.index:index;
  useEffect(()=>{heading.current?.focus();},[active]);
  const backHref=local?"/quiz":"/history";
- if(!state)return <section className="exam-layout"><div className="exam-card exam-loading"><span className="exam-eyebrow">CHUẨN BỊ BÀI LÀM</span><h1>{title}</h1><p role="status">{error||"Đang khôi phục bài làm…"}</p>{error&&<button className="button secondary" onClick={()=>void send("poll")}>Thử lại</button>}</div></section>;
+ if(!state||state.phase==="ready")return <section className="exam-layout"><div className="exam-card exam-loading"><span className="exam-eyebrow">CHUẨN BỊ BÀI LÀM</span><h1>{title}</h1><p role="status">{error||"Đang khôi phục bài làm…"}</p>{error&&<button className="button secondary" onClick={()=>void send("poll")}>Thử lại</button>}</div></section>;
  const answered=answers.filter(a=>a>=0).length,total=state.questions.length;
  if(state.phase==="finished")return <section className={`exam-layout${state.quiz ? "" : " exam-test"}`}><div className="exam-card exam-complete"><span className="exam-complete-icon" aria-hidden="true">✓</span><span className="exam-eyebrow">ĐÃ HOÀN THÀNH</span><h1>{title}</h1><div className="exam-score">{state.score}<span> / {total}</span></div><p>{Math.round((state.score??0)/total*100)}% chính xác · {total-answered} câu chưa trả lời</p><div className="exam-complete-actions"><Link className="button primary" href={`/attempts/${id}`}>Xem đáp án & giải thích →</Link><Link className="exam-text-link" href={backHref}>{local?"Chọn quiz khác":"Về lịch sử làm bài"}</Link></div><small>Kết quả đã lưu {local?"trên trình duyệt này":"vào tài khoản của bạn"}.</small></div></section>;
  const q=state.questions[active!],feedback=state.feedback;
@@ -71,7 +74,7 @@ export default function SessionPlayer({id,title,execute,local=false}:{id:string;
    <div className="exam-options">{q.options.map((option,i)=>{
     const selected=answers[active!]===i;
     const correct=feedback?.answer===i,wrong=!!feedback&&selected&&!correct;
-    return <button key={i} className={`exam-option${selected?" is-selected":""}${correct?" is-correct":""}${wrong?" is-wrong":""}`} disabled={submitting||(state.quiz&&pending)||state.phase==="feedback"||left===0} aria-pressed={selected} onClick={()=>void send("select",i,active!)}><span className="exam-option-letter">{String.fromCharCode(65+i)}</span><span className="exam-option-text">{option}</span><span className="exam-option-indicator" aria-hidden="true">{correct?"✓":wrong?"×":selected?"●":""}</span></button>;
+    return <button key={i} className={`exam-option${selected?" is-selected":""}${correct?" is-correct":""}${wrong?" is-wrong":""}`} disabled={submitting||(state.quiz&&pending)||state.phase!=="answering"||left===0} aria-pressed={selected} onClick={()=>void send("select",i,active!)}><span className="exam-option-letter">{String.fromCharCode(65+i)}</span><span className="exam-option-text">{option}</span><span className="exam-option-indicator" aria-hidden="true">{correct?"✓":wrong?"×":selected?"●":""}</span></button>;
    })}</div>
    {feedback&&<div role="status" className={`exam-feedback${feedback.correct?" is-correct":""}`}><strong>{state.answers[state.index]===-1?"Hết giờ, chưa trả lời.":feedback.correct?"Chính xác!":"Chưa đúng."}</strong>{!feedback.correct&&<p>Đáp án: {q.options[feedback.answer]}</p>}<p>{feedback.explanation}</p></div>}
    {!state.quiz&&<div className="exam-controls"><button className="exam-text-link" disabled={index===0} onClick={()=>setIndex(i=>i-1)}>← Câu trước</button>{index<total-1?<button className="button secondary" onClick={()=>setIndex(i=>i+1)}>Câu tiếp →</button>:<span className="exam-last-question">Câu cuối cùng</span>}</div>}

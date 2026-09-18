@@ -57,7 +57,7 @@ export async function startSession(kind:"QUIZ"|"TEST", sourceId:string, id:strin
 }
 export async function sessionCommand(id:string, command:Command) {
   const viewer=await requireUser();z.uuid().parse(id);
-  const cmd=z.object({type:z.enum(["poll","select","submit"]),
+  const cmd=z.object({type:z.enum(["poll","select","submit","activate"]),
     index:z.number().int().optional(),option:z.number().int().optional(),
     revision:z.number().int().min(0)}).parse(command);
   return db.$transaction(async tx=>{

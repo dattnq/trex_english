@@ -24,7 +24,7 @@ Người dùng xác nhận đã cấu hình Google. Lần kết nối trực ti�
 
 `npm run ops:finalize` xử lý tối đa 100 phiên đến hạn mỗi lần chạy, dùng cùng bộ xử lý thời gian và advisory lock với web. Mỗi phiên có transaction riêng, kết quả upsert theo ID nên chạy lại không nhân đôi. Trên hosting, cấu hình scheduler chạy lệnh này mỗi phút. Đây là CLI đã bổ sung, **chưa có lịch chạy tự động trên hosting** vì chưa có môi trường hosting được cấu hình trong nhiệm vụ này. Nếu chưa bật lịch, mở lại phiên vẫn hoàn tất kết quả theo mốc cũ.
 
-Quiz bây giờ đồng bộ mỗi 5 giây hoặc khi đến hạn; chọn đáp án gửi ngay. Đồng hồ giao diện vẫn cập nhật 100ms. Không dùng số test đơn vị để suy ra sức tải máy chủ. Trước mở rộng, đo độ trễ p95 với nhiều phiên đăng nhập riêng trên staging; mỗi tài khoản/mỗi phiên cần riêng, đo lỗi giao dịch, số connection và độ trễ nhận đáp án trong giới hạn 10 giây mỗi câu.
+Quiz đồng bộ khi đến hạn hoặc quay lại tab; chọn đáp án gửi ngay. Đồng hồ giao diện vẫn cập nhật 100ms. Không dùng số test đơn vị để suy ra sức tải máy chủ. Trước mở rộng, đo độ trễ p95 với nhiều phiên đăng nhập riêng trên staging; mỗi tài khoản/mỗi phiên cần riêng, đo lỗi giao dịch, số connection và độ trễ nhận đáp án trong giới hạn 10 giây mỗi câu.
 
 ## Sao lưu và diễn tập phục hồi
 

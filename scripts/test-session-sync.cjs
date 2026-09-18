@@ -85,3 +85,21 @@ test('a successful retry clears only its own failure and another selection does 
   h.sync.select(1,1); h.requests[4].resolve({...initial,answers:[1,1],revision:2}); await tick();
   assert.equal(h.view().error,'');
 });
+
+test('quiz readiness displays ten seconds immediately and queues a click behind slow activation', async () => {
+ const ready={...initial,quiz:true,phase:'ready',serverNow:20000,deadline:320000};
+ const h=await setup(ready);
+ assert.equal(h.requests[1].command.type,'activate');assert.equal(h.requests[1].command.index,0);
+ assert.equal(h.view().state.phase,'answering');assert.equal(h.view().state.deadline-h.view().state.serverNow,10000);assert.equal(h.view().saving,false);
+ h.sync.select(0,1);assert.deepEqual(h.view().answers,[1,-1]);assert.equal(h.requests.length,2);
+ h.requests[1].resolve({...ready,phase:'answering',serverNow:24000,deadline:34000,revision:1});await tick();
+ assert.deepEqual(h.requests[2].command,{type:'select',index:0,option:1,revision:1});
+ h.requests[2].resolve({...ready,phase:'feedback',answers:[1,-1],revision:2});await tick();
+ assert.equal(h.view().state.phase,'feedback');assert.equal(h.view().saving,false);
+});
+test('failed quiz activation reports failure, stops queued clicks and can recover through polling', async () => {
+ const ready={...initial,quiz:true,phase:'ready'};const h=await setup(ready);
+ h.sync.select(0,1);h.requests[1].reject(new Error('offline'));await tick();
+ assert.equal(h.view().state.phase,'ready');assert.equal(h.view().saving,false);assert(h.view().error);assert.equal(h.requests.length,2);
+ h.sync.poll();h.requests[2].resolve(ready);await tick();assert.equal(h.requests[3].command.type,'activate');
+});

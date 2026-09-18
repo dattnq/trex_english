@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { readingSchema } from "@/lib/reading";
 export const QUIZ_QUESTION_MS = 10000;
+const QUIZ_READY_TIMEOUT_MS = 300000;
 export const questionSchema = z.object({
   reading: readingSchema.nullish(), number: z.number().int().min(1).max(999).nullish(),
   prompt: z.string().min(1), options: z.array(z.string()).min(2),
@@ -10,7 +11,7 @@ export type Question = z.infer<typeof questionSchema>;
 export const stateSchema = z.object({
   quiz: z.boolean(), questions: z.array(questionSchema).min(1).max(100),
   answers: z.array(z.number().int().min(-1)), index: z.number().int().nonnegative(),
-  phase: z.enum(["answering", "feedback", "finished"]),
+  phase: z.enum(["ready", "answering", "feedback", "finished"]),
   deadline: z.number(), now: z.number(), endedAt: z.number(),
   revision: z.number().int().nonnegative(),
 }).refine(s => s.answers.length === s.questions.length &&
@@ -18,14 +19,14 @@ export const stateSchema = z.object({
     a < s.questions[i].options.length));
 export type State = z.infer<typeof stateSchema>;
 export type Command = {
-  type: "poll" | "select" | "submit";
+  type: "poll" | "select" | "submit" | "activate";
   index?: number; option?: number; revision: number
 };
 export function begin(questions: Question[], quiz: boolean,
   durationMs: number, now: number): State {
   return stateSchema.parse({
     quiz, questions, answers: questions.map(() => -1),
-    index: 0, phase: "answering", deadline: now + (quiz ? QUIZ_QUESTION_MS : durationMs),
+    index: 0, phase: quiz ? "ready" : "answering", deadline: now + (quiz ? QUIZ_READY_TIMEOUT_MS : durationMs),
     now, endedAt: 0, revision: 0
   });
 }
@@ -35,6 +36,12 @@ export function score(s: State) {
 export function step(input: State, cmd: Command, now: number): State {
   let s: State = { ...input, answers: [...input.answers], now };
   if (s.phase === "finished") return input;
+  if (s.quiz && s.phase === "ready") {
+    if (now >= s.deadline) return { ...s, phase: "finished", endedAt: s.deadline, revision: s.revision + 1 };
+    if (cmd.type === "activate" && cmd.revision === s.revision && cmd.index === s.index)
+      return { ...s, phase: "answering", deadline: now + QUIZ_QUESTION_MS, revision: s.revision + 1 };
+    return s;
+  }
   let advanced = false;
   // Advance against absolute deadlines, including time spent offline/in another tab.
   while (now >= s.deadline) {
@@ -42,9 +49,8 @@ export function step(input: State, cmd: Command, now: number): State {
     if (!s.quiz || (s.phase === "feedback" && s.index === s.questions.length - 1)) {
       return { ...s, phase: "finished", endedAt: s.deadline, revision: s.revision + 1 };
     }
-    s = s.phase === "answering"
-      ? { ...s, phase: "feedback", deadline: s.deadline + 1500, revision:s.revision+1 }
-      : { ...s, phase: "answering", index: s.index + 1, deadline: s.deadline + QUIZ_QUESTION_MS, revision:s.revision+1 };
+    if (s.phase === "feedback") return { ...s, phase: "ready", index: s.index + 1, deadline: now + QUIZ_READY_TIMEOUT_MS, revision: s.revision + 1 };
+    s = { ...s, phase: "feedback", deadline: s.deadline + 1500, revision:s.revision+1 };
   }
   if (advanced) return s;
   if (cmd.revision !== s.revision || cmd.type === "poll") return s;
