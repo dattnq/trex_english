@@ -2,7 +2,7 @@
 
 ## Luồng sử dụng
 
-- `/quiz`: chọn bộ từ, nhấn **Bắt đầu / tiếp tục**. Mỗi câu có 5 giây; lựa chọn được khóa khi máy chủ nhận. Phản hồi đúng/sai hiện 1,5 giây, sau đó tự chuyển câu. Không chọn kịp được tính sai. Cuối bài hiện tổng điểm và liên kết xem giải thích.
+- `/quiz`: chọn bộ từ, nhấn **Bắt đầu / tiếp tục**. Mỗi câu có 10 giây; lựa chọn được khóa khi máy chủ nhận. Phản hồi đúng/sai hiện 1,5 giây, sau đó tự chuyển câu. Không chọn kịp được tính sai. Cuối bài hiện tổng điểm và liên kết xem giải thích.
 - `/tests`: chọn đề công khai. Đồng hồ đếm theo số phút do admin đặt. Có thể chuyển câu và đổi lựa chọn; không có nút kiểm tra đáp án trong lúc làm. Nộp bài cần xác nhận số câu đã chọn. Hết giờ tự kết thúc khi phiên kết nối với máy chủ.
 - `/history`: các phiên chưa đóng và kết quả trên tài khoản; có phân trang. Mở kết quả để xem từng đáp án, giải thích và lọc câu chưa đúng.
 - Tải lại trang hoặc rời tab không đặt lại thời gian. Nếu đóng trình duyệt hoàn toàn, không có tác vụ nền tự ghi kết quả: mở phiên lại sẽ tính hết giờ theo mốc cũ và lưu kết quả.
@@ -25,6 +25,6 @@ Thời gian máy chủ quyết định việc nhận đáp án. Khi mạng chậ
 
 Chạy `npm run test:logic`, `npm run test:admin`, `npm run test:auth`, `npm run test:pronunciation`, `npm run lint` và `npx next build --webpack`.
 
-Kiểm tra thủ công: chọn đúng/sai quiz; chờ quá 5 giây; rời tab rồi quay lại; tải lại test đã chọn đáp án; đổi câu và sửa lựa chọn; nộp sớm; chờ hết giờ; mở lịch sử; đăng nhập tài khoản khác để kiểm tra cách ly kết quả. Build/kiểm thử tự động đã đạt; kiểm tra trình duyệt trực tiếp đợt này bị chặn bởi thời gian chờ của hệ thống duyệt quyền.
+Kiểm tra thủ công: chọn đúng/sai quiz; chờ quá 10 giây; rời tab rồi quay lại; tải lại test đã chọn đáp án; đổi câu và sửa lựa chọn; nộp sớm; chờ hết giờ; mở lịch sử; đăng nhập tài khoản khác để kiểm tra cách ly kết quả. Build/kiểm thử tự động đã đạt; kiểm tra trình duyệt trực tiếp đợt này bị chặn bởi thời gian chờ của hệ thống duyệt quyền.
 
 Cập nhật: có CLI `npm run ops:finalize` để đóng phiên quá hạn; cần cấu hình scheduler trên hosting. Quiz bộ từ cá nhân của tài khoản dùng server; chỉ khách dùng phiên cục bộ. Xem `DONG_BO_VA_VAN_HANH.md`.

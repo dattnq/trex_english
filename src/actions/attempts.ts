@@ -4,7 +4,7 @@ import { randomInt } from "node:crypto";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { readDeck } from "@/lib/learning";
-import { begin, step, stateSchema, publicState, score,
+import { QUIZ_QUESTION_MS, begin, step, stateSchema, publicState, score,
   type Question, type Command } from "@/lib/session-engine";
 import type { Prisma } from "@/generated/prisma/client";
 import { readingSchema } from "@/lib/reading";
@@ -28,7 +28,7 @@ export async function startSession(kind:"QUIZ"|"TEST", sourceId:string, id:strin
     const active=await tx.learningSession.findFirst({where:{userId:viewer.id,kind,sourceId,
       state:{path:["phase"],not:"finished"}},orderBy:{createdAt:"desc"},select:{id:true}});
     if(active)return {id:active.id};
-    let title:string,questions:Question[],duration=5000;
+    let title:string,questions:Question[],duration=QUIZ_QUESTION_MS;
     if(kind==="QUIZ") {
       const deck=await readDeck(sourceId,viewer);
       if(!deck || !deck.words.length) throw new Error("Bộ từ trống hoặc không có quyền.");

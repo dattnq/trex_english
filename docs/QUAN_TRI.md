@@ -41,7 +41,7 @@ Hệ thống hiện quản lý **hồ sơ và phân quyền** trong ứng dụng
 - Trang chủ/thư viện flashcard/quiz lấy bộ từ PUBLIC từ database. Bộ từ riêng tư không được đưa vào danh mục chung.
 - Trang `/tests` chỉ lấy metadata và số câu của đề `published = true`. Đáp án không được gửi cùng danh mục hoặc trang giới thiệu đề.
 - Test công khai bắt đầu một phiên server ở `/sessions/[id]`; thời gian được kiểm tra phía server, đáp án chỉ được xem sau khi nộp/hết giờ.
-- Quiz của bộ từ công khai dùng cùng cơ chế: mỗi câu 5 giây, phản hồi 1,5 giây, tự chuyển câu, lưu điểm. Cần có ít nhất 4 nghĩa khác nhau trong nguồn từ được phép truy cập để tạo đủ lựa chọn.
+- Quiz của bộ từ công khai dùng cùng cơ chế: mỗi câu 10 giây, phản hồi 1,5 giây, tự chuyển câu, lưu điểm. Cần có ít nhất 4 nghĩa khác nhau trong nguồn từ được phép truy cập để tạo đủ lựa chọn.
 - Phiên đã bắt đầu giữ bản chụp nội dung. Sửa/ẩn/xóa đề không thay đổi câu hỏi của phiên đang làm hoặc kết quả đã nộp.
 - Bộ từ tự tạo và tiến độ flashcard học thử vẫn ở `trex-learning-v1` trong localStorage. Quiz từ bộ chỉ tồn tại trong trình duyệt vẫn dùng luồng học thử cũ. Những dữ liệu này chưa tự nhập vào database và không xuất hiện trong báo cáo admin.
 - Dashboard người học hiện vẫn thống kê lịch sử cục bộ. Kết quả quiz/test server được lưu trong database và xem bằng liên kết kết quả sau khi nộp; admin xem được trong mục kết quả học tập.

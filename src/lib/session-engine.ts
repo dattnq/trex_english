@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { readingSchema } from "@/lib/reading";
+export const QUIZ_QUESTION_MS = 10000;
 export const questionSchema = z.object({
   reading: readingSchema.nullish(), number: z.number().int().min(1).max(999).nullish(),
   prompt: z.string().min(1), options: z.array(z.string()).min(2),
@@ -24,7 +25,7 @@ export function begin(questions: Question[], quiz: boolean,
   durationMs: number, now: number): State {
   return stateSchema.parse({
     quiz, questions, answers: questions.map(() => -1),
-    index: 0, phase: "answering", deadline: now + (quiz ? 5000 : durationMs),
+    index: 0, phase: "answering", deadline: now + (quiz ? QUIZ_QUESTION_MS : durationMs),
     now, endedAt: 0, revision: 0
   });
 }
@@ -43,7 +44,7 @@ export function step(input: State, cmd: Command, now: number): State {
     }
     s = s.phase === "answering"
       ? { ...s, phase: "feedback", deadline: s.deadline + 1500, revision:s.revision+1 }
-      : { ...s, phase: "answering", index: s.index + 1, deadline: s.deadline + 5000, revision:s.revision+1 };
+      : { ...s, phase: "answering", index: s.index + 1, deadline: s.deadline + QUIZ_QUESTION_MS, revision:s.revision+1 };
   }
   if (advanced) return s;
   if (cmd.revision !== s.revision || cmd.type === "poll") return s;

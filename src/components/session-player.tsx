@@ -55,13 +55,14 @@ export default function SessionPlayer({id,title,execute,local=false}:{id:string;
  const answered=answers.filter(a=>a>=0).length,total=state.questions.length;
  if(state.phase==="finished")return <section className={`exam-layout${state.quiz ? "" : " exam-test"}`}><div className="exam-card exam-complete"><span className="exam-complete-icon" aria-hidden="true">✓</span><span className="exam-eyebrow">ĐÃ HOÀN THÀNH</span><h1>{title}</h1><div className="exam-score">{state.score}<span> / {total}</span></div><p>{Math.round((state.score??0)/total*100)}% chính xác · {total-answered} câu chưa trả lời</p><div className="exam-complete-actions"><Link className="button primary" href={`/attempts/${id}`}>Xem đáp án & giải thích →</Link><Link className="exam-text-link" href={backHref}>{local?"Chọn quiz khác":"Về lịch sử làm bài"}</Link></div><small>Kết quả đã lưu {local?"trên trình duyệt này":"vào tài khoản của bạn"}.</small></div></section>;
  const q=state.questions[active!],feedback=state.feedback;
- const urgent=left<=(state.quiz?2:60)&&state.phase!=="feedback";
+ const urgent=left<=(state.quiz?3:60)&&state.phase!=="feedback";
  return <section className={`exam-layout${state.quiz ? "" : " exam-test"}`}>
   <header className="exam-header">
    <div className="exam-heading"><span className="exam-eyebrow">{state.quiz?"QUIZ TỪ VỰNG":"BÀI KIỂM TRA"}</span><p>{title}</p></div>
-   <div className={`exam-clock${urgent?" is-urgent":""}`}><span>{state.phase==="feedback"?"CHUYỂN CÂU":state.quiz?"MỖI CÂU 5 GIÂY":"CÒN LẠI"}</span><strong role="timer" aria-live="off">{state.phase==="feedback"?"•••":`${Math.floor(left/60)}:${String(left%60).padStart(2,"0")}`}</strong></div>
+   <div className={`exam-clock${urgent?" is-urgent":""}`}><span>{state.phase==="feedback"?"CHUYỂN CÂU":state.quiz?"MỖI CÂU 10 GIÂY":"CÒN LẠI"}</span><strong role="timer" aria-live="off">{state.phase==="feedback"?"•••":`${Math.floor(left/60)}:${String(left%60).padStart(2,"0")}`}</strong></div>
   </header>
   <div className="exam-progress"><progress aria-label="Tiến độ làm bài" max={total} value={state.quiz?state.index:answered}/></div>
+  {state.quiz&&<div className={`quiz-countdown${urgent?" is-urgent":""}`}><div><span>{state.phase==="feedback"?"Đang hiển thị đáp án":"Thời gian trả lời"}</span><strong>{state.phase==="feedback"?"Tự chuyển sang câu tiếp theo":`${left} / 10 giây`}</strong></div><progress aria-label="Thời gian trả lời còn lại" max={10} value={state.phase==="feedback"?0:Math.min(10,left)}/></div>}
   <div className={state.quiz ? "" : `reading-exam-grid${q.reading ? " has-reading" : ""}`}>
   {!state.quiz && q.reading && <aside className="reading-exam-passage" key={q.reading.id} aria-label="Nội dung bài đọc"><ReadingPassage reading={q.reading}/></aside>}
   <div className="exam-card">
