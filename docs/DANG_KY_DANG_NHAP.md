@@ -7,7 +7,7 @@
 - Supabase Auth xử lý mật khẩu. Profile chỉ được tạo cho email đã xác nhận và luôn bắt đầu với LEARNER; không nhận role từ form hoặc metadata.
 - Callback xác nhận hỗ trợ cả `token_hash` từ mẫu email tùy chỉnh và `code` của PKCE. Điểm đến chỉ là account hoặc reset-password, không chuyển tới URL tùy ý.
 - Đăng nhập, cookie SSR, proxy làm mới phiên, trang tài khoản có bảo vệ và đăng xuất.
-- Gửi lại xác nhận, quên mật khẩu, đặt mật khẩu mới trong phiên hợp lệ và đăng xuất toàn cục sau khi đổi.
+- Gửi lại xác nhận email; quên mật khẩu bằng OTP email; đổi mật khẩu trực tiếp trong phiên hợp lệ và đăng xuất toàn cục sau khi đổi.
 - Header đọc Viewer từ server, không dùng tên lưu trong localStorage làm trạng thái đăng nhập.
 - Form có lỗi từng trường, giữ nội dung sau lỗi, hiện/ẩn mật khẩu và khóa gửi khi đang chờ.
 
@@ -20,9 +20,12 @@ Supabase Auth của project hiện cho phép email/password, cho đăng ký và 
 - Site URL khi phát triển: `http://localhost:3000`.
 - Redirect URLs cho phép callback `/auth/confirm`, bao gồm URL khôi phục có `?next=reset-password` khi dùng PKCE mặc định.
 - Mẫu Confirm signup tùy chỉnh: `docs/supabase-confirm-email.html`.
-- Mẫu Reset password tùy chỉnh: `docs/supabase-reset-email.html`.
+- **Bắt buộc khi triển khai OTP:** vào Supabase Dashboard → Authentication → Email Templates (hoặc Emails → Templates) → Reset password, thay nội dung bằng toàn bộ file `docs/supabase-reset-email.html` rồi lưu. Mẫu dùng `{{ .Token }}` để gửi mã OTP. Thay file trong Git không tự cập nhật mẫu email trên Supabase.
+- Luồng mới: `resetPasswordForEmail` gửi thư khôi phục → `verifyOtp({ email, token, type: "recovery" })` tạo phiên đã xác thực → trang `/reset-password` gọi `updateUser`. Không dùng OTP đăng nhập để tạo tài khoản mới.
+- Giao diện hỗ trợ mã gồm 6–10 chữ số theo cấu hình Supabase, chờ 60 giây trước khi gửi lại. Giới hạn gửi/xác thực và thời hạn mã do Supabase thực thi; bộ đếm trên giao diện chỉ hỗ trợ trải nghiệm.
+- Cần cấu hình dịch vụ gửi email/SMTP phù hợp trên Supabase để gửi tới người dùng thật.
 
-Mẫu `TokenHash` hỗ trợ mở liên kết trên trình duyệt khác. Với mẫu mặc định dùng PKCE, mở thư trong trình duyệt đã khởi tạo yêu cầu để còn cookie code verifier. Liên kết hết hạn hoặc dùng lại chuyển về trang hướng dẫn gửi thư mới. Đảm bảo SMTP, người gửi và giới hạn gửi thư của Supabase phù hợp; thông báo trên form không bảo đảm email đã đến hộp thư.
+OTP mới được nhập ngay trên website, không cần mở liên kết hoặc cookie PKCE từ trình duyệt gửi yêu cầu. Callback cũ vẫn hỗ trợ liên kết đã gửi trước khi đổi mẫu. Đảm bảo SMTP, người gửi và giới hạn gửi thư của Supabase phù hợp; thông báo trên form không bảo đảm email đã đến hộp thư.
 
 ## Kiểm tra bằng tài khoản của bạn
 
@@ -30,8 +33,8 @@ Mẫu `TokenHash` hỗ trợ mở liên kết trên trình duyệt khác. Với 
 2. Reload trang, đóng rồi mở lại tab; header vẫn nhận tài khoản khi phiên hợp lệ.
 3. Đăng xuất; mở `/account` phải chuyển về `/login`.
 4. Thử sai mật khẩu, email chưa xác nhận và hai mật khẩu đăng ký không khớp.
-5. Gửi email đặt lại, mở liên kết, thay mật khẩu, đăng nhập lại bằng mật khẩu mới.
-6. Thử link hết hạn/dùng lại, gửi lại xác nhận và lỗi mạng.
+5. Gửi mã tới email tài khoản đã đăng ký, nhập mã trên website, đặt mật khẩu mới và đăng nhập lại. Kiểm tra mật khẩu cũ không còn dùng được.
+6. Thử OTP sai/hết hạn/đã dùng, gửi lại mã, đổi email, giới hạn gửi và lỗi mạng. Không được mở bước đặt mật khẩu khi OTP không hợp lệ.
 
 Kiểm thử tự động dùng dịch vụ Auth mô phỏng để kiểm tra cả luồng thành công mà không tự tạo tài khoản hoặc gửi thư. Việc xác nhận email thật và đổi mật khẩu thật cần được kiểm tra bằng hộp thư do bạn kiểm soát.
 

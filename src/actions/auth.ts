@@ -9,6 +9,7 @@ import {
   loginSchema,
   registerSchema,
   resetPasswordSchema,
+  recoveryOtpSchema,
   updateProfileSchema,
 } from "@/lib/validation";
 import { db } from "@/lib/db";
@@ -153,9 +154,32 @@ export async function recoveryAction(
   }
   return {
     status: "success",
+    recoveryEmail: mode === "reset" ? email.data : undefined,
     message:
-      "Nếu tài khoản phù hợp, bạn sẽ nhận được email hướng dẫn. Kiểm tra cả thư rác và chờ trước khi gửi lại.",
+      mode === "reset"
+        ? "Nếu tài khoản phù hợp, mã OTP sẽ được gửi đến email của bạn. Kiểm tra cả thư rác."
+        : "Nếu tài khoản phù hợp, bạn sẽ nhận được email xác nhận. Kiểm tra cả thư rác.",
   };
+}
+export async function verifyRecoveryAction(
+  _previous: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const parsed = recoveryOtpSchema.safeParse({ email: form.get("email"), token: form.get("token") });
+  if (!parsed.success) return {
+    ...failure("Kiểm tra lại email và mã OTP."),
+    errors: parsed.error.flatten().fieldErrors,
+  };
+  try {
+    const supabase = await createClient(true);
+    const { data, error } = await supabase.auth.verifyOtp({ ...parsed.data, type: "recovery" });
+    if (error || !data.user?.email_confirmed_at || !data.session) return failure(
+      error?.status === 429 ? rateMessage : "Mã OTP không đúng hoặc đã hết hạn. Hãy thử lại hoặc gửi mã mới.",
+    );
+  } catch {
+    return failure("Không kết nối được dịch vụ. Hãy thử xác nhận mã lại.");
+  }
+  redirect("/reset-password");
 }
 export async function resetAction(
   _previous: FormState,

@@ -10,5 +10,6 @@ export type Viewer = {
 export type FormState = {
   message: string;
   status?: "error" | "success";
-  errors?: Partial<Record<"displayName" | "email" | "password" | "confirmPassword" | "dailyGoal" | "timeZone", string[]>>;
+  recoveryEmail?: string;
+  errors?: Partial<Record<"displayName" | "email" | "token" | "password" | "confirmPassword" | "dailyGoal" | "timeZone", string[]>>;
 };

@@ -232,3 +232,63 @@ test('failed password update never signs out or reports success', async () => {
   assert.equal((await c.actions.resetAction({}, form(registration))).status, 'error');
   assert(!c.calls.some(call => call.name === 'signOut'));
 });
+
+test('recovery email request returns normalized email for OTP entry', async () => {
+  const c = context();
+  const result = await c.actions.recoveryAction({}, form({ email: ' Test@example.invalid ', mode: 'reset' }));
+  assert.equal(result.status, 'success');
+  assert.equal(result.recoveryEmail, 'test@example.invalid');
+  assert.equal(c.calls[0].name, 'resetPasswordForEmail');
+  assert.equal(c.calls[0].args[0], 'test@example.invalid');
+  assert(!c.calls.some(call => call.name === 'updateUser'));
+});
+
+test('OTP verification accepts recovery tokens and redirects only after a session exists', async () => {
+  const seed = context();
+  const c = context({ verifyOtp: { data: { user: seed.user, session: { access_token: 'fake' } }, error: null } });
+  await assert.rejects(c.actions.verifyRecoveryAction({}, form({ email: ' Test@example.invalid ', token: ' 012345 ', type: 'email' })), error => error.url === '/reset-password');
+  assert.deepEqual(c.calls, [{ name: 'verifyOtp', args: [{ email: 'test@example.invalid', token: '012345', type: 'recovery' }] }]);
+});
+
+test('invalid OTP format or email never reaches Supabase', async () => {
+  for (const fields of [
+    { email: 'bad', token: '123456' },
+    { email: 'test@example.invalid', token: '12345' },
+    { email: 'test@example.invalid', token: 'abcdef' },
+    { email: 'test@example.invalid', token: '12345678901' },
+    { email: 'test@example.invalid' },
+  ]) {
+    const c = context();
+    const result = await c.actions.verifyRecoveryAction({}, form(fields));
+    assert.equal(result.status, 'error');
+    assert.equal(c.calls.length, 0);
+  }
+});
+
+test('wrong, expired, reused and throttled OTPs stay on verification without updating password', async () => {
+  for (const code of ['otp_expired', 'invalid_credentials', 'over_request_rate_limit']) {
+    const c = context({ verifyOtp: { data: { user: null, session: null }, error: { code, status: code === 'over_request_rate_limit' ? 429 : 403, message: 'PRIVATE' } } });
+    const result = await c.actions.verifyRecoveryAction({}, form({ email: 'test@example.invalid', token: '123456' }));
+    assert.equal(result.status, 'error');
+    assert(!result.message.includes('PRIVATE'));
+    if (code === 'over_request_rate_limit') assert.match(result.message, /quá nhanh/);
+    assert.equal(c.calls.length, 1);
+    assert.equal(c.calls[0].name, 'verifyOtp');
+  }
+});
+
+test('OTP verification rejects missing sessions and handles network errors', async () => {
+  for (const verifyOtp of [new Error('PRIVATE'), { data: { user: { email_confirmed_at: '2026-01-01' }, session: null }, error: null }, { data: { user: null, session: {} }, error: null }]) {
+    const c = context({ verifyOtp });
+    const result = await c.actions.verifyRecoveryAction({}, form({ email: 'test@example.invalid', token: '123456' }));
+    assert.equal(result.status, 'error');
+    assert(!result.message.includes('PRIVATE'));
+  }
+});
+
+test('recovery requests do not reveal whether an email has an account', async () => {
+  const known = context();
+  const unknown = context({ resetPasswordForEmail: { error: { status: 400, code: 'user_not_found' } } });
+  const fields = { email: 'test@example.invalid', mode: 'reset' };
+  assert.deepEqual(await known.actions.recoveryAction({}, form(fields)), await unknown.actions.recoveryAction({}, form(fields)));
+});

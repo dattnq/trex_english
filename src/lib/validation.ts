@@ -2,6 +2,10 @@ import { z } from "zod";
 
 export const emailSchema = z.string().trim().email("Nhập địa chỉ email hợp lệ.").max(254).toLowerCase();
 const email = emailSchema;
+export const recoveryOtpSchema = z.object({
+  email,
+  token: z.string().trim().regex(/^\d{6,10}$/, "Nhập mã OTP gồm 6–10 chữ số trong email."),
+});
 export const loginSchema = z.object({
   email,
   password: z.string().min(1, "Nhập mật khẩu của bạn.").max(128),
