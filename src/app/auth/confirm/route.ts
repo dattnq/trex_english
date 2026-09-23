@@ -15,8 +15,12 @@ export async function GET(request: NextRequest) {
         ? await supabase.auth.exchangeCodeForSession(code)
         : await supabase.auth.verifyOtp({ token_hash: hash!, type: type as "email" | "recovery" });
       if (!error && data.user?.email_confirmed_at) {
-        const profile = await ensureProfile(data.user);
-        destination = type === "recovery" || (code && request.nextUrl.searchParams.get("next") === "reset-password") ? "/reset-password" : getAuthDestination(profile.role);
+        if (type === "recovery" || (code && request.nextUrl.searchParams.get("next") === "reset-password")) {
+          destination = "/reset-password";
+        } else {
+          const profile = await ensureProfile(data.user);
+          destination = getAuthDestination(profile.role);
+        }
       }
     } catch {
       destination = "/auth/error";

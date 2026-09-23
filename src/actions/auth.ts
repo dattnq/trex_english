@@ -186,11 +186,14 @@ export async function resetAction(
           ? rateMessage
           : "Chưa đổi được mật khẩu. Mật khẩu phải khác mật khẩu cũ và đáp ứng chính sách tài khoản.",
       );
-    const signedOut = await supabase.auth.signOut({ scope: "global" });
-    if (signedOut.error)
-      return failure(
-        "Mật khẩu đã đổi, nhưng chưa đăng xuất được các phiên. Hãy đăng xuất từ trang tài khoản.",
-      );
+    // The password update has succeeded even if session cleanup fails.
+    try {
+      const signedOut = await supabase.auth.signOut({ scope: "global" });
+      if (signedOut.error)
+        return { status: "success", message: "Đã đổi mật khẩu. Chưa đăng xuất được các phiên; hãy quay lại tài khoản để đăng xuất." };
+    } catch {
+      return { status: "success", message: "Đã đổi mật khẩu. Kết nối đăng xuất bị gián đoạn; hãy quay lại tài khoản để đăng xuất." };
+    }
   } catch {
     return failure(
       "Kết nối gián đoạn. Thử đăng nhập với mật khẩu mới trước khi yêu cầu lại email.",

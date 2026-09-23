@@ -84,11 +84,11 @@ export default async function AccountPage() {
               <p>Quản lý mật khẩu và phiên đăng nhập.</p>
             </div>
             <div className="pf-security-actions">
-              <Link href="/forgot-password" className="pf-action-row">
+              <Link href="/reset-password" className="pf-action-row">
                 <div className="pf-action-row-icon">🔑</div>
                 <div>
                   <p className="pf-action-row-title">Đổi mật khẩu</p>
-                  <p className="pf-action-row-desc">Nhận link đặt lại mật khẩu qua email</p>
+                  <p className="pf-action-row-desc">Nhập và lưu mật khẩu mới</p>
                 </div>
                 <span className="pf-action-row-arrow">→</span>
               </Link>

@@ -7,6 +7,12 @@ import { Icon } from "@/components/ui";
 export default function RecoveryForm({reset=false,mode="reset"}:{reset?:boolean;mode?:"reset"|"resend"}) {
   const [state,action,pending]=useActionState(reset?resetAction:recoveryAction,{message:""});
   const [email,setEmail]=useState(""),[password,setPassword]=useState(""),[confirm,setConfirm]=useState("");
+  if (state.status === "success") return <div className="ta-form">
+    <AuthFeedback state={state}/>
+    {!reset && <p className="ta-hint">Kiểm tra hộp thư đến và thư rác. Mở liên kết bằng trình duyệt đang dùng.</p>}
+    <Link className="ta-submit" href={reset ? "/account" : "/login"}>{reset ? "Về tài khoản" : "Quay lại đăng nhập"}</Link>
+    {!reset && <button type="button" className="ta-guest" onClick={() => window.location.reload()}>Gửi lại email</button>}
+  </div>;
   return <form action={action} className="ta-form" aria-busy={pending}><fieldset disabled={pending}>
     <input type="hidden" name="mode" value={mode}/>
     {reset?<><PasswordField name="password" label="Mật khẩu mới" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={e=>setPassword(e.target.value)} error={state.errors?.password?.[0]}/><PasswordField name="confirmPassword" label="Nhập lại mật khẩu mới" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e=>setConfirm(e.target.value)} error={state.errors?.confirmPassword?.[0]}/></>:<div className="ta-field"><label htmlFor="email">Email tài khoản</label><input id="email" name="email" type="email" placeholder="ban@example.com" autoComplete="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)} aria-invalid={Boolean(state.errors?.email)}/></div>}

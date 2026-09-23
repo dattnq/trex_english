@@ -199,3 +199,36 @@ for (const [role, destination] of [['LEARNER', '/'], ['ADMIN', '/admin']]) {
     }
   });
 }
+
+test('recovery callback does not create or query learner profiles', async () => {
+  for (const query of ['token_hash=fake&type=recovery', 'code=fake&next=reset-password']) {
+    const c = context();
+    const result = await c.load('src/app/auth/confirm/route.ts').GET({ nextUrl: new URL(`https://trex.test/auth/confirm?${query}`) });
+    assert.equal(result.headers.get('location'), 'https://trex.test/reset-password');
+    assert(!c.calls.some(call => call.name === 'profile'));
+  }
+});
+
+test('password mismatch never reaches the authentication service', async () => {
+  const c = context();
+  const result = await c.actions.resetAction({}, form({ ...registration, confirmPassword: 'different' }));
+  assert.equal(result.status, 'error');
+  assert(result.errors.confirmPassword);
+  assert.equal(c.calls.length, 0);
+});
+
+test('successful password update remains successful when logout fails', async () => {
+  for (const signOut of [{ error: { status: 500 } }, new Error('network')]) {
+    const c = context({ signOut });
+    const result = await c.actions.resetAction({}, form(registration));
+    assert.equal(result.status, 'success');
+    assert.match(result.message, /Đã đổi mật khẩu/);
+    assert.equal(c.calls.filter(call => call.name === 'updateUser').length, 1);
+  }
+});
+
+test('failed password update never signs out or reports success', async () => {
+  const c = context({ updateUser: { error: { status: 422 } } });
+  assert.equal((await c.actions.resetAction({}, form(registration))).status, 'error');
+  assert(!c.calls.some(call => call.name === 'signOut'));
+});
