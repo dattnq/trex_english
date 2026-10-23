@@ -2147,6 +2147,33 @@ kbd {
 .dashboard-next .button { display: inline-flex; align-items: center; gap: 8px; }
 .dashboard-review-tip { display: flex; align-items: center; gap: 8px; margin: 12px 4px 0; color: #687666; font-size: 13px; }
 .dashboard-review-tip a { color: #31583e; font-weight: 650; }
+.result-next-steps { padding: 22px; border-radius: 18px; background: #f4f7ef; }
+.result-recommendations { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 16px; }
+.result-recommendation { display: flex; align-items: center; gap: 12px; padding: 14px; color: inherit; text-decoration: none; }
+.result-recommendation > span:nth-child(2) { display: grid; flex: 1; gap: 4px; min-width: 0; }
+.result-recommendation strong { color: #304a35; font-size: 13px; }
+.result-recommendation small { color: #788576; font-size: 11px; }
+.wrong-practice { display: grid; gap: 14px; margin-top: 14px; }
+.wrong-practice-heading { display: flex; justify-content: space-between; gap: 12px; color: #71806e; font-size: 12px; }
+.wrong-practice h3 { margin: 0; font-size: 17px; }
+.wrong-practice-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.wrong-practice-options button { min-height: 46px; padding: 10px 14px; text-align: left; border: 1px solid #d9e2d5; border-radius: 10px; background: white; color: #334a37; font: inherit; cursor: pointer; }
+.wrong-practice-options button:disabled { cursor: default; }
+.wrong-practice-options button.is-correct { border-color: #70a67c; background: #edf7ed; }
+.wrong-practice-options button.is-wrong { border-color: #cf8177; background: #fff0ed; }
+.wrong-practice-feedback { padding: 14px; border-radius: 12px; background: #f4f7ef; }
+.wrong-practice-feedback p { margin: 7px 0 12px; color: #657260; font-size: 13px; }
+.wrong-practice-feedback .button { display: inline-flex; align-items: center; gap: 8px; }
+.wrong-practice-reading summary { cursor: pointer; color: #466344; font-weight: 650; }
+.wrong-practice-done,.result-perfect { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding: 16px; }
+.wrong-practice-done > div { flex: 1; }
+.wrong-practice-done p { margin: 4px 0 0; font-size: 12px; }
+.result-perfect { color: #486645; }
+@media (max-width: 600px) {
+  .wrong-practice-options { grid-template-columns: 1fr; }
+  .wrong-practice-done { flex-wrap: wrap; }
+  .wrong-practice-heading { flex-direction: column; gap: 4px; }
+}
 .results-table {
   background: #fff;
   border: 1px solid var(--line);
