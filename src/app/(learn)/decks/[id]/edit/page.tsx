@@ -8,6 +8,7 @@ import { lookupPronunciation } from "@/lib/pronunciation-client";
 import { Icon, EmptyState } from "@/components/ui";
 import Link from "next/link";
 import type { Deck } from "@/lib/learning-data";
+import BulkWordImport from "@/components/bulk-word-import";
 
 const COLORS = [
   ["blue", "Xanh dương"],
@@ -236,6 +237,7 @@ function EditDeckForm({ deck }: { deck: Deck }) {
           </label>
 
           <h2>Từ vựng ({words.length}/100)</h2>
+          <BulkWordImport existingWords={words} onImport={(imported) => setWords((current) => [...current.filter((word) => word.term.trim() || word.meaning.trim()), ...imported].slice(0, 100))} />
           {words.map((w, i) => (
             <fieldset className="panel" key={w.id}>
               <legend>Từ {i + 1}</legend>

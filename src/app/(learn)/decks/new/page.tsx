@@ -7,6 +7,7 @@ import PronunciationFields from "@/components/pronunciation-fields";
 import { lookupPronunciation } from "@/lib/pronunciation-client";
 import { Icon } from "@/components/ui";
 import Link from "next/link";
+import BulkWordImport from "@/components/bulk-word-import";
 
 const COLORS = [
   ["blue", "Xanh dương"],
@@ -55,6 +56,7 @@ export default function NewDeckPage() {
   }
 
   function addWord() {
+    if (words.length >= 100) return;
     setWords((prev) => [
       ...prev,
       { id: crypto.randomUUID(), term: "", phonetic: "", meaning: "", example: "" },
@@ -83,6 +85,8 @@ export default function NewDeckPage() {
     if (!trimmedTitle) { setError("Nhập tên bộ từ."); return; }
     if (!trimmedCategory) { setError("Nhập chủ đề."); return; }
     if (!trimmedSymbol) { setError("Nhập ký hiệu."); return; }
+    const incompleteCount = words.filter((w) => Boolean(w.term.trim()) !== Boolean(w.meaning.trim())).length;
+    if (incompleteCount) { setError("Mỗi từ đã nhập cần có đủ từ tiếng Anh và nghĩa, hoặc xóa dòng còn dang dở."); return; }
     const validWords = words.filter((w) => w.term.trim() && w.meaning.trim());
     if (validWords.length === 0) { setError("Thêm ít nhất một từ có đủ từ tiếng Anh và nghĩa."); return; }
     setSaving(true);
@@ -175,6 +179,7 @@ export default function NewDeckPage() {
           </label>
 
           <h2>Từ vựng ({words.length}/100)</h2>
+          <BulkWordImport existingWords={words} onImport={(imported) => setWords((current) => [...current.filter((word) => word.term.trim() || word.meaning.trim()), ...imported].slice(0, 100))} />
           {words.map((w, i) => (
             <fieldset className="panel" key={w.id}>
               <legend>Từ {i + 1}</legend>
